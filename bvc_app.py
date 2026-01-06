@@ -5,7 +5,11 @@ import plotly.express as px
 import requests
 import time
 import random
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
+# Venezuela Timezone (UTC-4)
+VET = timezone(timedelta(hours=-4))
+
 
 # --- Page Configuration ---
 st.set_page_config(
@@ -195,7 +199,7 @@ def fetch_interbono_data():
         # Calculate a pseudo index or "Market Heat" based on average change
         avg_change = df['ChangePercent'].mean() if not df.empty else 0.0
         
-        current_date = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        current_date = datetime.now(VET).strftime("%d/%m/%Y %H:%M:%S")
         
         return {
             "status": "online",
@@ -211,12 +215,12 @@ def fetch_interbono_data():
             "status": "error",
             "market_avg_change": 0.0,
             "stocks": pd.DataFrame(),
-            "date": datetime.now().strftime("%d/%m/%Y")
+            "date": datetime.now(VET).strftime("%d/%m/%Y")
         }
 
 def generate_history(symbol, start_price, trend=0):
     """Generates a random walk history for sparking lines (visual candy only)."""
-    dates = pd.date_range(end=datetime.now(), periods=30)
+    dates = pd.date_range(end=datetime.now(VET), periods=30)
     prices = [start_price]
     for _ in range(29):
         # Biased random walk based on trend
@@ -239,7 +243,7 @@ with col2:
     if st.button("🔄 Actualizar Ahora"):
         st.cache_data.clear()
         st.rerun()
-    st.markdown(f"<div style='text-align: right; font-size: 0.8rem; color: #94a3b8;'>Última actualización: {datetime.now().strftime('%H:%M:%S')}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='text-align: right; font-size: 0.8rem; color: #94a3b8;'>Última actualización: {datetime.now(VET).strftime('%H:%M:%S')}</div>", unsafe_allow_html=True)
 
 # Fetch Data
 data = fetch_interbono_data()
