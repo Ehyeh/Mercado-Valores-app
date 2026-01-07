@@ -712,19 +712,20 @@ with tab_market:
 with tab_portfolio:
     holdings = database.get_holdings()
 
+    available_symbols = data['stocks']['Symbol'].tolist() if not data['stocks'].empty else []
+    
+    def format_func(symbol):
+        s_clean = symbol.replace('.CR', '')
+        s_name = symbol_to_name.get(symbol, '')
+        if not s_name or s_name.upper() == s_clean.upper():
+            return s_clean
+        return f"{s_clean} ({s_name})"
+
     # 1. Add Asset Section (Now at the top)
     with st.expander("➕ Agregar Activo", expanded=not holdings):
         # Interactive Add Asset
         c1, c2, c3, c4 = st.columns([1.5, 1, 1, 1])
-        available_symbols = data['stocks']['Symbol'].tolist() if not data['stocks'].empty else []
         
-        def format_func(symbol):
-            s_clean = symbol.replace('.CR', '')
-            s_name = symbol_to_name.get(symbol, '')
-            if not s_name or s_name.upper() == s_clean.upper():
-                return s_clean
-            return f"{s_clean} ({s_name})"
-
         with c1:
             symbol_sel = st.selectbox("Acción", options=available_symbols, format_func=format_func, key="pf_symbol_select")
 
@@ -939,7 +940,7 @@ with tab_portfolio:
             
             # Use columns for the premium card layout
             with st.container():
-                c_main, c_del = st.columns([0.95, 0.05])
+                c_main, c_actions = st.columns([0.9, 0.1])
                 
                 with c_main:
                     # Inner columns for the card content - adjusted weights
@@ -977,11 +978,35 @@ with tab_portfolio:
                                 </div>
                             </div>
                         """, unsafe_allow_html=True)
-                    
 
-                with c_del:
+                with c_actions:
+                    btn_edit = st.button("✏️", key=f"edit_btn_{p_item['id']}", help="Editar activo")
                     if st.checkbox("", key=f"del_chk_{p_item['id']}", label_visibility="collapsed"):
                         items_to_delete.append(p_item['id'])
+                
+                if btn_edit:
+                    st.session_state[f"is_editing_{p_item['id']}"] = not st.session_state.get(f"is_editing_{p_item['id']}", False)
+
+                if st.session_state.get(f"is_editing_{p_item['id']}", False):
+                    with st.form(key=f"edit_form_{p_item['id']}"):
+                        st.markdown(f"##### ✏️ Editar Registro: {display_symbol}")
+                        ec1, ec2, ec3, ec4 = st.columns([1.5, 1, 1, 1])
+                        with ec1:
+                            new_sym = st.selectbox("Acción", options=available_symbols, index=available_symbols.index(p_item['Symbol']) if p_item['Symbol'] in available_symbols else 0, format_func=format_func, key=f"edit_sym_{p_item['id']}")
+                        with ec2:
+                            new_qty = st.number_input("Cant.", min_value=0.0, value=float(p_item['Cantidad']), key=f"edit_qty_{p_item['id']}")
+                        with ec3:
+                            new_cost = st.number_input("Costo Prom. (Bs)", min_value=0.0, value=float(p_item['Costo Prom.']), format="%.4f", key=f"edit_cost_{p_item['id']}")
+                        with ec4:
+                            current_date = datetime.fromisoformat(p_item['purchase_date']).date() if p_item['purchase_date'] else datetime.now(VET).date()
+                            new_date = st.date_input("Fecha", value=current_date, key=f"edit_date_{p_item['id']}")
+                        
+                        if st.form_submit_button("💾 Guardar Cambios", use_container_width=True):
+                            database.update_holding(p_item['id'], new_sym, new_qty, new_cost, new_date.isoformat())
+                            st.success("✅ Cambios guardados.")
+                            del st.session_state[f"is_editing_{p_item['id']}"]
+                            time.sleep(1)
+                            st.rerun()
 
         if items_to_delete:
             # Create right-aligned container for delete button
