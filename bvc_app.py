@@ -537,62 +537,6 @@ with tab_market:
 with tab_portfolio:
     st.markdown("### 💼 Gestión de Portafolio")
     
-    # 1. Add Asset Section
-    with st.expander("➕ Agregar Activo", expanded=False):
-        # Interactive Add Asset
-        c1, c2, c3, c4 = st.columns([1.5, 1, 1, 1])
-        available_symbols = data['stocks']['Symbol'].tolist() if not data['stocks'].empty else []
-        
-        # Helper Dict
-        symbol_to_name = dict(zip(data['stocks']['Symbol'], data['stocks']['Name'])) if not data['stocks'].empty else {}
-        
-        def format_func(symbol):
-            s_clean = symbol.replace('.CR', '')
-            s_name = symbol_to_name.get(symbol, '')
-            if not s_name or s_name.upper() == s_clean.upper():
-                return s_clean
-            return f"{s_clean} ({s_name})"
-
-        with c1:
-            symbol_sel = st.selectbox("Acción", options=available_symbols, format_func=format_func, key="pf_symbol_select")
-
-        with c2:
-            # Default to today
-            purchase_date = st.date_input("Fecha Compra", value=datetime.now(VET).date(), key="pf_date_input")
-
-        # Logic to update price when symbol or date changes
-        if 'last_pf_selection' not in st.session_state:
-            st.session_state.last_pf_selection = (None, None)
-        
-        current_selection = (symbol_sel, purchase_date)
-        
-        if current_selection != st.session_state.last_pf_selection:
-            with st.spinner("Consultando precio..."):
-                # If it's today, we can use the current price
-                if purchase_date == datetime.now(VET).date():
-                     row = data['stocks'][data['stocks']['Symbol'] == symbol_sel]
-                     price_to_set = float(row['Price'].values[0]) if not row.empty else 0.0
-                else:
-                    # Fetch historical
-                    hist_price = fetch_historical_price(symbol_sel, purchase_date)
-                    price_to_set = float(hist_price) if hist_price else 0.0
-                
-                st.session_state.pf_cost_input = price_to_set
-                st.session_state.last_pf_selection = current_selection
-
-        with c3:
-            qty_input = st.number_input("Cantidad", min_value=1, value=100, key="pf_qty_input")
-        with c4:
-            cost_input = st.number_input("Costo (Bs)", min_value=0.0, step=0.01, format="%.2f", key="pf_cost_input")
-            
-        if st.button("Agregar al Portafolio"):
-            try:
-                database.add_holding(symbol_sel, qty_input, cost_input, purchase_date.isoformat())
-                st.success("Portafolio actualizado")
-                time.sleep(1)
-                st.rerun()
-            except Exception as e:
-                st.error(f"Error al guardar: {e}")
 
     # 2. Portfolio Summary
     holdings = database.get_holdings()
@@ -714,6 +658,64 @@ with tab_portfolio:
                     st.success("Activos eliminados correctamente.")
                     time.sleep(1)
                     st.rerun()
+
+        st.markdown("---")
+        # 3. Add Asset Section (Moved to bottom)
+        with st.expander("➕ Agregar Activo", expanded=False):
+            # Interactive Add Asset
+            c1, c2, c3, c4 = st.columns([1.5, 1, 1, 1])
+            available_symbols = data['stocks']['Symbol'].tolist() if not data['stocks'].empty else []
+            
+            # Helper Dict
+            symbol_to_name = dict(zip(data['stocks']['Symbol'], data['stocks']['Name'])) if not data['stocks'].empty else {}
+            
+            def format_func(symbol):
+                s_clean = symbol.replace('.CR', '')
+                s_name = symbol_to_name.get(symbol, '')
+                if not s_name or s_name.upper() == s_clean.upper():
+                    return s_clean
+                return f"{s_clean} ({s_name})"
+
+            with c1:
+                symbol_sel = st.selectbox("Acción", options=available_symbols, format_func=format_func, key="pf_symbol_select")
+
+            with c2:
+                # Default to today
+                purchase_date = st.date_input("Fecha Compra", value=datetime.now(VET).date(), key="pf_date_input")
+
+            # Logic to update price when symbol or date changes
+            if 'last_pf_selection' not in st.session_state:
+                st.session_state.last_pf_selection = (None, None)
+            
+            current_selection = (symbol_sel, purchase_date)
+            
+            if current_selection != st.session_state.last_pf_selection:
+                with st.spinner("Consultando precio..."):
+                    # If it's today, we can use the current price
+                    if purchase_date == datetime.now(VET).date():
+                         row = data['stocks'][data['stocks']['Symbol'] == symbol_sel]
+                         price_to_set = float(row['Price'].values[0]) if not row.empty else 0.0
+                    else:
+                        # Fetch historical
+                        hist_price = fetch_historical_price(symbol_sel, purchase_date)
+                        price_to_set = float(hist_price) if hist_price else 0.0
+                    
+                    st.session_state.pf_cost_input = price_to_set
+                    st.session_state.last_pf_selection = current_selection
+
+            with c3:
+                qty_input = st.number_input("Cantidad", min_value=1, value=100, key="pf_qty_input")
+            with c4:
+                cost_input = st.number_input("Costo (Bs)", min_value=0.0, step=0.01, format="%.2f", key="pf_cost_input")
+                
+            if st.button("Agregar al Portafolio"):
+                try:
+                    database.add_holding(symbol_sel, qty_input, cost_input, purchase_date.isoformat())
+                    st.success("Portafolio actualizado")
+                    time.sleep(1)
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Error al guardar: {e}")
 
 # Footer (outside tabs)
 st.markdown("---")
