@@ -665,60 +665,60 @@ with tab_portfolio:
         # 1. Dashboard Header (Metrics + Chart)
         st.markdown('<div class="dashboard-container">', unsafe_allow_html=True)
             
-            d_col1, d_col2 = st.columns([1, 2])
+        d_col1, d_col2 = st.columns([1, 2])
+        
+        with d_col1:
+            total_gain = total_value - total_cost
+            total_gain_pct = (total_gain / total_cost * 100) if total_cost > 0 else 0
+            color_hex = "#4ade80" if total_gain >= 0 else "#f87171"
             
-            with d_col1:
-                total_gain = total_value - total_cost
-                total_gain_pct = (total_gain / total_cost * 100) if total_cost > 0 else 0
-                color_hex = "#4ade80" if total_gain >= 0 else "#f87171"
-                
-                st.markdown(f"""
-                    <div>
-                        <div style="font-size: 0.85rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Balance Total</div>
-                        <div style="font-size: 2.2rem; font-weight: 800; color: white; margin: 4px 0;">Bs {total_value:,.2f}</div>
-                        <div style="color: {color_hex}; font-size: 1rem; font-weight: 600;">
-                            {'+' if total_gain >= 0 else ''}Bs {total_gain:,.2f} ({total_gain_pct:.2f}%)
-                        </div>
-                        <div style="font-size: 0.75rem; color: #64748b; margin-top: 4px;">Rendimiento Total (Histórico)</div>
+            st.markdown(f"""
+                <div>
+                    <div style="font-size: 0.85rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Balance Total</div>
+                    <div style="font-size: 2.2rem; font-weight: 800; color: white; margin: 4px 0;">Bs {total_value:,.2f}</div>
+                    <div style="color: {color_hex}; font-size: 1rem; font-weight: 600;">
+                        {'+' if total_gain >= 0 else ''}Bs {total_gain:,.2f} ({total_gain_pct:.2f}%)
                     </div>
-                """, unsafe_allow_html=True)
+                    <div style="font-size: 0.75rem; color: #64748b; margin-top: 4px;">Rendimiento Total (Histórico)</div>
+                </div>
+            """, unsafe_allow_html=True)
+        
+        with d_col2:
+            # 2. Portfolio History Chart (Inline)
+            symbols = [h['symbol'] for h in holdings]
+            hist_df = fetch_multi_history(symbols)
             
-            with d_col2:
-                # 2. Portfolio History Chart (Inline)
-                symbols = [h['symbol'] for h in holdings]
-                hist_df = fetch_multi_history(symbols)
+            if not hist_df.empty:
+                portfolio_history = pd.Series(0, index=hist_df.index)
+                for item in holdings:
+                    if item['symbol'] in hist_df.columns:
+                        portfolio_history += hist_df[item['symbol']] * item['qty']
                 
-                if not hist_df.empty:
-                    portfolio_history = pd.Series(0, index=hist_df.index)
-                    for item in holdings:
-                        if item['symbol'] in hist_df.columns:
-                            portfolio_history += hist_df[item['symbol']] * item['qty']
-                    
-                    fig_main = go.Figure()
-                    fig_main.add_trace(go.Scatter(
-                        x=portfolio_history.index, 
-                        y=portfolio_history.values,
-                        mode='lines',
-                        line=dict(color="#f59e0b", width=2.5),
-                        fill='tozeroy',
-                        fillcolor='rgba(245, 158, 11, 0.03)',
-                        name="Valor"
-                    ))
-                    
-                    fig_main.update_layout(
-                        margin=dict(l=0, r=0, t=10, b=0),
-                        height=160,
-                        paper_bgcolor='rgba(0,0,0,0)',
-                        plot_bgcolor='rgba(0,0,0,0)',
-                        xaxis=dict(showgrid=False, color="#475569", tickfont=dict(size=10)),
-                        yaxis=dict(showgrid=False, visible=False),
-                        hovermode="x unified"
-                    )
-                    st.plotly_chart(fig_main, use_container_width=True, config={'displayModeBar': False})
-                else:
-                    st.info("Cargando datos históricos...")
-            
-            st.markdown('</div>', unsafe_allow_html=True)
+                fig_main = go.Figure()
+                fig_main.add_trace(go.Scatter(
+                    x=portfolio_history.index, 
+                    y=portfolio_history.values,
+                    mode='lines',
+                    line=dict(color="#f59e0b", width=2.5),
+                    fill='tozeroy',
+                    fillcolor='rgba(245, 158, 11, 0.03)',
+                    name="Valor"
+                ))
+                
+                fig_main.update_layout(
+                    margin=dict(l=0, r=0, t=10, b=0),
+                    height=160,
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    xaxis=dict(showgrid=False, color="#475569", tickfont=dict(size=10)),
+                    yaxis=dict(showgrid=False, visible=False),
+                    hovermode="x unified"
+                )
+                st.plotly_chart(fig_main, use_container_width=True, config={'displayModeBar': False})
+            else:
+                st.info("Cargando datos históricos...")
+        
+        st.markdown('</div>', unsafe_allow_html=True)
 
         # 3. Allocation / Strategy Summary (Optional row to fill space)
         # st.markdown("#### Distribución y Activos")
