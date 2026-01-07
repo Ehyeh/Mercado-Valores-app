@@ -1,4 +1,5 @@
 import streamlit as st
+import os
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
@@ -140,6 +141,21 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- Data Fetching Functions ---
+
+@st.cache_data(ttl=3600)
+def fetch_bcv_rate():
+    """
+    Fetches the official BCV USD/VES exchange rate.
+    """
+    url = "https://ve.dolarapi.com/v1/dolares/oficial"
+    try:
+        response = requests.get(url, timeout=5)
+        response.raise_for_status()
+        data = response.json()
+        return data.get('promedio', 1.0) # Fallback to 1.0 if not found
+    except Exception as e:
+        print(f"Error fetching BCV rate: {e}")
+        return 1.0
 
 @st.cache_data(ttl=60)
 def fetch_interbono_data():
@@ -393,6 +409,34 @@ with col2:
 
 # Fetch Data
 data = fetch_interbono_data()
+usd_rate = fetch_bcv_rate()
+
+# Display BCV Rate in Sidebar or Header
+st.sidebar.markdown(f"""
+<style>
+@keyframes pulse {{
+  0% {{ transform: scale(1); opacity: 1; }}
+  50% {{ transform: scale(1.05); opacity: 0.8; }}
+  100% {{ transform: scale(1); opacity: 1; }}
+}}
+.live-indicator {{
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background-color: #4ade80;
+    border-radius: 50%;
+    margin-right: 5px;
+    animation: pulse 2s infinite;
+}}
+</style>
+<div style='padding: 15px; background: rgba(30, 41, 59, 0.7); border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 20px;'>
+    <div style='font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px;'>
+        <span class='live-indicator'></span>TC Oficial BCV
+    </div>
+    <div style='font-size: 1.5rem; font-weight: 800; color: #f8fafc;'>Bs. {usd_rate:,.2f}</div>
+    <div style='font-size: 0.7rem; color: #64748b;'>Referencia para conversión</div>
+</div>
+""", unsafe_allow_html=True)
 
 # Helper Mapping (Global)
 symbol_to_name = dict(zip(data['stocks']['Symbol'], data['stocks']['Name'])) if not data['stocks'].empty else {}
@@ -446,7 +490,10 @@ with tab_market:
                         <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{top_gainer['Name']}</div>
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <div style="color: #4ade80; font-weight: 700;">+{top_gainer['ChangePercent']:.2f}%</div>
-                            <div style="color: #94a3b8; font-size: 0.8rem;">Bs. {top_gainer['Price']:,.2f}</div>
+                            <div style="text-align: right;">
+                                <div style="color: #f8fafc; font-size: 0.9rem; font-weight: 600;">Bs. {top_gainer['Price']:,.2f}</div>
+                                <div style="color: #38bdf8; font-size: 0.75rem;">$ {top_gainer['Price']/usd_rate:,.2f}</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -545,10 +592,11 @@ with tab_market:
                 
                 # Col 2: Price
                 with c2:
+                     price_usd = row['Price'] / usd_rate if usd_rate > 0 else 0
                      st.markdown(f"""
                     <div>
                         <div style="font-weight: bold; font-size: 1rem;">Bs. {row['Price']:,.2f}</div>
-                        <div style="font-size: 0.75rem; color: #64748b;">Actual</div>
+                        <div style="font-size: 0.75rem; color: #38bdf8;">$ {price_usd:,.2f}</div>
                     </div>
                     """, unsafe_allow_html=True)
 
@@ -667,13 +715,16 @@ with tab_portfolio:
             total_gain = total_value - total_cost
             total_gain_pct = (total_gain / total_cost * 100) if total_cost > 0 else 0
             color_hex = "#4ade80" if total_gain >= 0 else "#f87171"
+            total_val_usd = total_value / usd_rate if usd_rate > 0 else 0
+            total_gain_usd = total_gain / usd_rate if usd_rate > 0 else 0
             
             st.markdown(f"""
                 <div>
                     <div style="font-size: 0.85rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Balance Total</div>
-                    <div style="font-size: 2.2rem; font-weight: 800; color: white; margin: 4px 0;">Bs {total_value:,.2f}</div>
+                    <div style="font-size: 2.2rem; font-weight: 800; color: white; margin: 4px 0;">Bs. {total_value:,.2f}</div>
+                    <div style="font-size: 1.2rem; font-weight: 600; color: #38bdf8; margin-bottom: 8px;">$ {total_val_usd:,.2f}</div>
                     <div style="color: {color_hex}; font-size: 1rem; font-weight: 600;">
-                        {'+' if total_gain >= 0 else ''}Bs {total_gain:,.2f} ({total_gain_pct:.2f}%)
+                        {'+' if total_gain >= 0 else ''}Bs. {total_gain:,.2f} / $ {total_gain_usd:,.2f} ({total_gain_pct:.2f}%)
                     </div>
                     <div style="font-size: 0.75rem; color: #64748b; margin-top: 4px;">Rendimiento Total (Histórico)</div>
                 </div>
@@ -746,7 +797,8 @@ with tab_portfolio:
                                     <span style="font-size: 0.65rem; color: #475569; background: rgba(71, 85, 105, 0.1); padding: 1px 5px; border-radius: 4px; font-weight: 600; text-transform: uppercase;">{buy_date_str}</span>
                                 </div>
                                 <div style="font-size: 0.7rem; color: #64748b; margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;">{symbol_to_name.get(symbol_full, display_symbol)}</div>
-                                <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 500;">{p_item['Cantidad']:,g} acc. @ Bs {p_item['Costo Prom.']:,.2f}</div>
+                                <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 500;">{p_item['Cantidad']:,g} acc. @ Bs. {p_item['Costo Prom.']:,.2f}</div>
+                                <div style="font-size: 0.7rem; color: #38bdf8;">$ {p_item['Costo Prom.']/usd_rate:,.4f}</div>
                             </div>
                         """, unsafe_allow_html=True)
                     
@@ -757,9 +809,11 @@ with tab_portfolio:
                             st.write("") # Placeholder
                             
                     with col_val:
+                        val_total_usd = p_item['Valor Total'] / usd_rate if usd_rate > 0 else 0
                         st.markdown(f"""
                             <div style="text-align: right; padding: 10px 0;">
-                                <div style="font-weight: 800; font-size: 1.1rem; color: white;">{p_item['Valor Total']:,.2f}</div>
+                                <div style="font-weight: 800; font-size: 1.1rem; color: white;">Bs. {p_item['Valor Total']:,.2f}</div>
+                                <div style="font-size: 0.85rem; color: #38bdf8; font-weight: 600;">$ {val_total_usd:,.2f}</div>
                                 <div style="color: {accent_color}; background: rgba({(248,113,113) if not is_pos else (74,222,128)}, 0.1); 
                                      padding: 2px 6px; border-radius: 4px; display: inline-block; font-size: 0.85rem; font-weight: 600;">
                                     {'+' if is_pos else ''}{p_item['G/P %']:.2f}%
@@ -827,6 +881,8 @@ with tab_portfolio:
                 qty_input = st.number_input("Cantidad", min_value=1, value=100, key="pf_qty_input")
             with c4:
                 cost_input = st.number_input("Costo (Bs)", min_value=0.0, step=0.01, format="%.2f", key="pf_cost_input")
+                cost_usd = cost_input / usd_rate if usd_rate > 0 else 0
+                st.markdown(f"<div style='color: #38bdf8; font-size: 0.8rem;'>≈ $ {cost_usd:,.2f}</div>", unsafe_allow_html=True)
                 
             if st.button("Agregar al Portafolio"):
                 try:
@@ -855,4 +911,4 @@ with st.expander("🛠️ Estado del Sistema (Debug)"):
     if not database.DB_URL and os.path.exists(database.SQLITE_PATH):
         st.write(f"**Tamaño DB Local:** {os.path.getsize(database.SQLITE_PATH) / 1024:.2f} KB")
 
-st.markdown("<div style='text-align: center; color: #64748b; font-size: 0.8rem;'>Aplicación de Seguimiento de Portafolio v2.0</div>", unsafe_allow_html=True)
+st.markdown("<div style='text-align: center; color: #64748b; font-size: 0.8rem; padding: 20px 0; border-top: 1px solid rgba(255,255,255,0.05); margin-top: 40px;'>Finanzas Pro v3.0 • Desarrollado con ❤️ para el Mercado de Valores</div>", unsafe_allow_html=True)
