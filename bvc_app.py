@@ -603,7 +603,6 @@ with tab_market:
 
 # --- TAB: MI PORTAFOLIO ---
 with tab_portfolio:
-    st.markdown("### 💼 Gestión de Portafolio")
     
 
     # 2. Portfolio Summary
