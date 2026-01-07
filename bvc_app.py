@@ -857,7 +857,7 @@ with tab_portfolio:
                     
                     with col_spark:
                         if spark_series is not None:
-                            st.plotly_chart(create_sparkline(spark_series, accent_color), use_container_width=True, config={'displayModeBar': False})
+                            st.plotly_chart(create_sparkline(spark_series, accent_color), use_container_width=True, config={'displayModeBar': False}, key=f"spark_{p_item['id']}")
                         else:
                             st.write("") # Placeholder
                             
@@ -942,7 +942,7 @@ with tab_portfolio:
             st.markdown("<div style='margin-top: 15px; font-size: 0.85rem; color: #94a3b8; font-weight: 600; text-transform: uppercase;'>Comisiones y Gastos</div>", unsafe_allow_html=True)
             f1, f2, f3 = st.columns(3)
             with f1:
-                comision_pct = st.number_input("Comisión (%)", min_value=0.0, max_value=100.0, value=0.90, step=0.05, format="%.2f", key="pf_com_pct")
+                comision_pct = st.number_input("Comisión (%)", min_value=0.0, max_value=100.0, value=5.00, step=0.05, format="%.2f", key="pf_com_pct")
             with f2:
                 derecho_pct = st.number_input("Derecho Registro (%)", min_value=0.0, max_value=100.0, value=0.10, step=0.01, format="%.2f", key="pf_der_pct")
             with f3:
