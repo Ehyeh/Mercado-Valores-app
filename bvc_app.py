@@ -138,24 +138,33 @@ st.markdown("""
         background: rgba(56, 189, 248, 0.1) !important;
     }
 
-    /* Portfolio Asset Symbol Styling */
-    .portfolio-symbol-container button {
-        background: transparent !important;
+    /* Portfolio Asset Symbol Styling - Force Transparency */
+    .portfolio-symbol-container [data-testid="stButton"] button {
+        background-color: transparent !important;
         border: 1px solid transparent !important;
+        box-shadow: none !important;
         color: #ffffff !important;
-        font-size: 1.1rem !important;
+        font-size: 1.25rem !important;
         font-weight: 800 !important;
-        padding: 4px 8px !important;
-        transition: all 0.2s ease !important;
-        border-radius: 8px !important;
-        margin-left: -8px !important; /* Align with text below */
+        padding: 2px 6px !important;
+        min-height: unset !important;
+        line-height: 1.2 !important;
+        transition: all 0.2s ease-in-out !important;
+        border-radius: 6px !important;
     }
 
-    .portfolio-symbol-container button:hover {
-        background: rgba(56, 189, 248, 0.15) !important;
-        border-color: rgba(56, 189, 248, 0.3) !important;
+    .portfolio-symbol-container [data-testid="stButton"] button:hover {
+        background-color: rgba(56, 189, 248, 0.15) !important;
+        border-color: rgba(56, 189, 248, 0.4) !important;
         color: #38bdf8 !important;
-        cursor: pointer !important;
+    }
+
+    .portfolio-symbol-container [data-testid="stButton"] button:active,
+    .portfolio-symbol-container [data-testid="stButton"] button:focus {
+        background-color: rgba(56, 189, 248, 0.1) !important;
+        color: #38bdf8 !important;
+        outline: none !important;
+        box-shadow: none !important;
     }
 </style>
 """, unsafe_allow_html=True)
