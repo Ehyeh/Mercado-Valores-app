@@ -288,16 +288,81 @@ def fetch_historical_price(symbol, target_date):
         print(f"Error fetching historical price for {symbol}: {e}")
         return None
 
-def generate_history(symbol, start_price, trend=0):
-    """Generates a random walk history for sparking lines (visual candy only)."""
-    dates = pd.date_range(end=datetime.now(VET), periods=30)
-    prices = [start_price]
-    for _ in range(29):
-        # Biased random walk based on trend
-        change = random.uniform(-0.02, 0.02) + (trend * 0.01)
-        prices.append(prices[-1] * (1 + change))
+@st.cache_data(ttl=3600)
+def fetch_multi_history(symbols, range_str="1y"):
+    """
+    Fetches historical data for multiple symbols to build the portfolio chart.
+    """
+    if not symbols:
+        return pd.DataFrame()
     
-    return pd.DataFrame({"Date": dates, "Price": prices})
+    url = "https://getmarketvalues-hdiyird7fq-uc.a.run.app"
+    all_series = {}
+    
+    # We'll fetch 1y by default with 1d interval
+    headers = {"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"}
+    
+    # To keep it efficient, we only fetch for unique symbols
+    unique_symbols = list(set(symbols))
+    yahoo_urls = [f"https://query1.finance.yahoo.com/v8/finance/chart/{s}?range={range_str}&interval=1d" for s in unique_symbols]
+    
+    try:
+        response = requests.post(url, json={"urls": yahoo_urls}, headers=headers, timeout=15)
+        response.raise_for_status()
+        results = response.json().get('data', [])
+        
+        for i, result in enumerate(results):
+            try:
+                chart_result = result.get('chart', {}).get('result', [{}])[0]
+                meta = chart_result.get('meta', {})
+                symbol = meta.get('symbol', unique_symbols[i])
+                timestamps = chart_result.get('timestamp', [])
+                indicators = chart_result.get('indicators', {}).get('quote', [{}])[0]
+                closes = indicators.get('close', [])
+                
+                if timestamps and closes:
+                    df = pd.DataFrame({
+                        'Date': pd.to_datetime(timestamps, unit='s'),
+                        symbol: closes
+                    }).set_index('Date')
+                    # Clean None values
+                    df[symbol] = df[symbol].ffill().bfill()
+                    all_series[symbol] = df[symbol]
+            except:
+                continue
+                
+        if not all_series:
+            return pd.DataFrame()
+            
+        return pd.DataFrame(all_series)
+    except Exception as e:
+        print(f"Error fetching multi history: {e}")
+        return pd.DataFrame()
+
+def create_sparkline(series, color="#4ade80"):
+    """Generates a small Plotly sparkline for the portfolio cards."""
+    if series is None or len(series) < 2:
+        return None
+        
+    fig = go.Figure(go.Scatter(
+        y=series, 
+        mode='lines', 
+        line=dict(color=color, width=2),
+        fill='tozeroy',
+        fillcolor=f"rgba({64 if color=='#f87171' else 74}, {113 if color=='#f87171' else 222}, {113 if color=='#f87171' else 128}, 0.1)",
+        hoverinfo='none'
+    ))
+    fig.update_layout(
+        margin=dict(l=0, r=0, t=0, b=0),
+        height=40,
+        width=120,
+        showlegend=False,
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        xaxis=dict(visible=False),
+        yaxis=dict(visible=False)
+    )
+    return fig
 
 # --- Main Layout ---
 
@@ -544,138 +609,117 @@ with tab_portfolio:
     if not holdings:
         st.info("Tu portafolio está vacío. Agrega acciones arriba para comenzar. (Ahora se guardan en Base de Datos)")
     else:
-        # Calculate Logic
-        portfolio_data = []
-        total_value = 0.0
-        total_cost = 0.0
-        
-        for item in holdings:
-            # Get current market data - with proper error handling
-            curr_price = item['avg_cost']  # Default fallback
-            day_change_pct = 0.0
-            
-            # Only try to access market data if stocks data is available and not empty
-            if data['status'] == 'online' and not data['stocks'].empty:
-                try:
-                    market_dat = data['stocks'][data['stocks']['Symbol'] == item['symbol']]
-                    if not market_dat.empty:
-                        curr_price = market_dat['Price'].values[0]
-                        day_change_pct = market_dat['ChangePercent'].values[0]
-                except (KeyError, IndexError) as e:
-                    # Fallback to cost if any error occurs
-                    pass
-            
-            market_val = curr_price * item['qty']
-            cost_val = item['avg_cost'] * item['qty']
-            gain_loss = market_val - cost_val
-            gain_loss_pct = (gain_loss / cost_val * 100) if cost_val > 0 else 0
-            
-            total_value += market_val
-            total_cost += cost_val
-            
-            portfolio_data.append({
-                "id": item['id'], # For removal
-                "Symbol": item['symbol'],
-                "Cantidad": item['qty'],
-                "Precio Mercado": curr_price,
-                "Costo Prom.": item['avg_cost'],
-                "Valor Total": market_val,
-                "Ganancia/Pérdida": gain_loss,
-                "G/P %": gain_loss_pct,
-                "Cambio Diario %": day_change_pct,
-                "purchase_date": item.get('purchase_date')
-            })
-            
-        # --- NEW: Portfolio Visualizations ---
-        st.markdown("#### 📈 Análisis de Rendimiento")
-        v_col1, v_col2 = st.columns([1, 1.5])
-        
+        # --- Premium Portfolio UI (Inspired by Image) ---
         df_pf = pd.DataFrame(portfolio_data)
         
-        with v_col1:
-            # 1. Allocation Donut Chart
-            fig_donut = px.pie(
-                df_pf, 
-                values='Valor Total', 
-                names='Symbol', 
-                hole=0.5,
-                title="Distribución de Cartera",
-                color_discrete_sequence=px.colors.qualitative.Pastel
-            )
-            fig_donut.update_traces(textposition='inside', textinfo='percent+label')
-            fig_donut.update_layout(
-                showlegend=False, 
-                margin=dict(t=40, b=0, l=0, r=0),
-                height=300,
-                paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(0,0,0,0)',
-                font=dict(color="white")
-            )
-            st.plotly_chart(fig_donut, use_container_width=True)
-
-        with v_col2:
-            # 2. Gain/Loss Bar Chart
-            df_pf = df_pf.sort_values('Ganancia/Pérdida', ascending=True)
-            colors = ['#4ade80' if x >= 0 else '#f87171' for x in df_pf['Ganancia/Pérdida']]
-            
-            fig_bar = go.Figure(go.Bar(
-                x=df_pf['Ganancia/Pérdida'],
-                y=df_pf['Symbol'].str.replace('.CR', ''),
-                orientation='h',
-                marker_color=colors,
-                text=df_pf['Ganancia/Pérdida'].apply(lambda x: f"{x:,.2f}"),
-                textposition='auto',
-            ))
-            
-            fig_bar.update_layout(
-                title="Ganancia / Pérdida por Activo (Bs)",
-                margin=dict(t=40, b=20, l=0, r=0),
-                height=300,
-                paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(0,0,0,0)',
-                xaxis=dict(showgrid=False, zerolinecolor='white'),
-                yaxis=dict(showgrid=False),
-                font=dict(color="white")
-            )
-            st.plotly_chart(fig_bar, use_container_width=True)
-
-        st.markdown("---")
-        # Holdings Table
-        st.markdown("#### 📜 Mis Activos")
+        # 1. Main Header Chart Area
+        st.markdown("#### Rendimiento del Portafolio")
         
-        # Display as cards or table? Table is better for density
-        # Collection for bulk delete
-        items_to_delete = []
+        main_col1, main_col2 = st.columns([1.5, 1])
         
-        # Display as cards or table? Table is better for density
-        for p_item in portfolio_data:
-            display_symbol = p_item['Symbol'].replace('.CR', '')
+        with main_col1:
+            total_gain = total_value - total_cost
+            total_gain_pct = (total_gain / total_cost * 100) if total_cost > 0 else 0
+            color_hex = "#4ade80" if total_gain >= 0 else "#f87171"
             
-            # Layout: Card | Checkbox
-            content_col, sel_col = st.columns([0.95, 0.05])
-            
-            with content_col:
-                st.markdown(f"""
-                <div class="portfolio-card" style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <div style="font-weight: bold; font-size: 1.2rem;" class="mobile-text-sm">{display_symbol}</div>
-                        <div style="font-size: 0.9rem; color: #ccc;" class="mobile-text-xs">{p_item['Cantidad']} acciones @ {p_item['Costo Prom.']:,.2f}</div>
-                        <div style="font-size: 0.75rem; color: #64748b;" class="mobile-hide">Comprado el {datetime.fromisoformat(p_item['purchase_date']).strftime('%d/%m/%Y') if p_item['purchase_date'] else 'N/A'}</div>
-                    </div>
-                    <div style="text-align: right;">
-                        <div style="font-weight: bold; font-size: 1.2rem;" class="mobile-text-sm">{p_item['Valor Total']:,.2f}</div>
-                        <div style="color: {'#4ade80' if p_item['Ganancia/Pérdida'] >= 0 else '#f87171'};" class="mobile-text-xs">
-                            {'+' if p_item['Ganancia/Pérdida'] >= 0 else ''}{p_item['Ganancia/Pérdida']:,.2f} ({p_item['G/P %']:.2f}%)
-                        </div>
+            st.markdown(f"""
+                <div style="margin-bottom: 20px;">
+                    <div style="font-size: 2.5rem; font-weight: 800; color: white;">Bs {total_value:,.2f}</div>
+                    <div style="color: {color_hex}; font-size: 1.1rem; font-weight: 600;">
+                        {'+' if total_gain >= 0 else ''}Bs {total_gain:,.2f} ({total_gain_pct:.2f}%) <span style="color: #94a3b8; font-weight: 400;">Último año</span>
                     </div>
                 </div>
-                """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
+        
+        # 2. Portfolio History Chart
+        with st.spinner("Generando análisis de rendimiento..."):
+            symbols = [h['symbol'] for h in holdings]
+            hist_df = fetch_multi_history(symbols)
             
-            with sel_col:
-                st.write("") # Spacer
-                st.write("") 
-                if st.checkbox("Eliminar", key=f"del_chk_{p_item['id']}", label_visibility="collapsed"):
-                    items_to_delete.append(p_item['id'])
+            if not hist_df.empty:
+                # Calculate portfolio value over time (simplified: current quantities * history)
+                portfolio_history = pd.Series(0, index=hist_df.index)
+                for item in holdings:
+                    if item['symbol'] in hist_df.columns:
+                        portfolio_history += hist_df[item['symbol']] * item['qty']
+                
+                fig_main = go.Figure()
+                fig_main.add_trace(go.Scatter(
+                    x=portfolio_history.index, 
+                    y=portfolio_history.values,
+                    mode='lines',
+                    line=dict(color="#f59e0b", width=3),
+                    fill='tozeroy',
+                    fillcolor='rgba(245, 158, 11, 0.05)',
+                    name="Portafolio"
+                ))
+                
+                fig_main.update_layout(
+                    margin=dict(l=0, r=0, t=20, b=0),
+                    height=250,
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    xaxis=dict(showgrid=False, color="#64748b"),
+                    yaxis=dict(showgrid=False, visible=False),
+                    hovermode="x unified"
+                )
+                st.plotly_chart(fig_main, use_container_width=True, config={'displayModeBar': False})
+            else:
+                st.info("No hay suficientes datos históricos para mostrar la gráfica de rendimiento.")
+
+        st.markdown("<div style='height: 30px;'></div>", unsafe_allow_html=True)
+        st.markdown("#### Portafolio y Listas de Seguimiento")
+        
+        # 3. Holdings Cards (New Design)
+        for p_item in portfolio_data:
+            display_symbol = p_item['Symbol'].replace('.CR', '')
+            symbol_full = p_item['Symbol']
+            
+            # Find history for sparkline
+            spark_series = hist_df[symbol_full].tail(30).values if not hist_df.empty and symbol_full in hist_df.columns else None
+            is_pos = p_item['Ganancia/Pérdida'] >= 0
+            accent_color = "#4ade80" if is_pos else "#f87171"
+            
+            # Use columns for the premium card layout
+            with st.container():
+                c_main, c_del = st.columns([0.95, 0.05])
+                
+                with c_main:
+                    # Inner columns for the card content
+                    col_info, col_spark, col_val = st.columns([1, 1, 1])
+                    
+                    with col_info:
+                        st.markdown(f"""
+                            <div style="padding: 10px 0;">
+                                <div style="font-weight: 800; font-size: 1.1rem; color: white;">{display_symbol}</div>
+                                <div style="font-size: 0.8rem; color: #94a3b8;">{symbol_to_name.get(symbol_full, display_symbol)}</div>
+                            </div>
+                        """, unsafe_allow_html=True)
+                    
+                    with col_spark:
+                        if spark_series is not None:
+                            st.plotly_chart(create_sparkline(spark_series, accent_color), use_container_width=True, config={'displayModeBar': False})
+                        else:
+                            st.write("") # Placeholder
+                            
+                    with col_val:
+                        st.markdown(f"""
+                            <div style="text-align: right; padding: 10px 0;">
+                                <div style="font-weight: 800; font-size: 1.1rem; color: white;">{p_item['Valor Total']:,.2f}</div>
+                                <div style="color: {accent_color}; background: rgba({(248,113,113) if not is_pos else (74,222,128)}, 0.1); 
+                                     padding: 2px 6px; border-radius: 4px; display: inline-block; font-size: 0.85rem; font-weight: 600;">
+                                    {'+' if is_pos else ''}{p_item['G/P %']:.2f}%
+                                </div>
+                            </div>
+                        """, unsafe_allow_html=True)
+                    
+                    st.markdown("<div style='height: 1px; background: rgba(255,255,255,0.05); margin: 5px 0;'></div>", unsafe_allow_html=True)
+
+                with c_del:
+                    st.write("") # Space
+                    st.write("")
+                    if st.checkbox("", key=f"del_chk_{p_item['id']}", label_visibility="collapsed"):
+                        items_to_delete.append(p_item['id'])
 
         if items_to_delete:
             # Create right-aligned container for delete button
