@@ -12,17 +12,28 @@ def init_db():
                 symbol TEXT NOT NULL,
                 quantity REAL NOT NULL,
                 avg_cost REAL NOT NULL,
+                purchase_date TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        
+        # Migration: Check if purchase_date exists, if not add it
+        cursor.execute("PRAGMA table_info(holdings)")
+        columns = [row[1] for row in cursor.fetchall()]
+        if "purchase_date" not in columns:
+            print("Migrating database: adding purchase_date column")
+            cursor.execute("ALTER TABLE holdings ADD COLUMN purchase_date TEXT")
+            # Default existing entries to their creation date (just the date part)
+            cursor.execute("UPDATE holdings SET purchase_date = date(created_at) WHERE purchase_date IS NULL")
+            
         conn.commit()
 
-def add_holding(symbol, quantity, avg_cost):
+def add_holding(symbol, quantity, avg_cost, purchase_date):
     with sqlite3.connect(DB_NAME) as conn:
         cursor = conn.cursor()
         cursor.execute(
-            "INSERT INTO holdings (symbol, quantity, avg_cost) VALUES (?, ?, ?)",
-            (symbol, float(quantity), float(avg_cost))
+            "INSERT INTO holdings (symbol, quantity, avg_cost, purchase_date) VALUES (?, ?, ?, ?)",
+            (symbol, float(quantity), float(avg_cost), purchase_date)
         )
         conn.commit()
 
@@ -45,7 +56,8 @@ def get_holdings():
                     "id": row["id"],
                     "symbol": row["symbol"],
                     "qty": row["quantity"],
-                    "avg_cost": row["avg_cost"]
+                    "avg_cost": row["avg_cost"],
+                    "purchase_date": row["purchase_date"]
                 })
     except Exception as e:
         print(f"Error fetching holdings: {e}")

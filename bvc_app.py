@@ -221,6 +221,52 @@ def fetch_interbono_data():
             "date": datetime.now(VET).strftime("%d/%m/%Y")
         }
 
+def fetch_historical_price(symbol, target_date):
+    """
+    Fetches the historical close price for a symbol on a specific date.
+    target_date should be a datetime.date object.
+    """
+    url = "https://getmarketvalues-hdiyird7fq-uc.a.run.app"
+    
+    # Convert date to timestamp range (start and end of the day)
+    dt = datetime.combine(target_date, datetime.min.time())
+    p1 = int(dt.timestamp())
+    p2 = p1 + 86400 # +24 hours
+    
+    yahoo_url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?period1={p1}&period2={p2}&interval=1d"
+    
+    payload = {"urls": [yahoo_url]}
+    headers = {"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"}
+    
+    try:
+        response = requests.post(url, json=payload, headers=headers, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        
+        if 'data' in data and data['data']:
+            result = data['data'][0]
+            chart_result = result.get('chart', {}).get('result', [{}])[0]
+            
+            # Try to get the close price from indicators
+            indicators = chart_result.get('indicators', {}).get('quote', [{}])[0]
+            closes = indicators.get('close', [])
+            
+            # Filter out None values and get the first valid close
+            valid_closes = [c for c in closes if c is not None]
+            if valid_closes:
+                return valid_closes[0]
+            
+            # Fallback to adjclose if necessary
+            adjcloses = chart_result.get('indicators', {}).get('adjclose', [{}])[0].get('adjclose', [])
+            valid_adj = [c for c in adjcloses if c is not None]
+            if valid_adj:
+                return valid_adj[0]
+                
+        return None
+    except Exception as e:
+        print(f"Error fetching historical price for {symbol}: {e}")
+        return None
+
 def generate_history(symbol, start_price, trend=0):
     """Generates a random walk history for sparking lines (visual candy only)."""
     dates = pd.date_range(end=datetime.now(VET), periods=30)
@@ -454,8 +500,8 @@ with tab_portfolio:
     
     # 1. Add Asset Section
     with st.expander("➕ Agregar Activo", expanded=False):
-        # Interactive Add Asset (No Form to allow dynamic updates)
-        c1, c2, c3 = st.columns(3)
+        # Interactive Add Asset
+        c1, c2, c3, c4 = st.columns([1.5, 1, 1, 1])
         available_symbols = data['stocks']['Symbol'].tolist() if not data['stocks'].empty else []
         
         # Helper Dict
@@ -469,36 +515,40 @@ with tab_portfolio:
             return f"{s_clean} ({s_name})"
 
         with c1:
-            # We use a key for selectbox to persist selection
             symbol_sel = st.selectbox("Acción", options=available_symbols, format_func=format_func, key="pf_symbol_select")
 
-        # Logic to update price when symbol changes
-        current_price = 0.0
-        if not data['stocks'].empty and symbol_sel:
-            row = data['stocks'][data['stocks']['Symbol'] == symbol_sel]
-            if not row.empty:
-                current_price = row['Price'].values[0]
-        
-        # Initialize or Update Session State for Cost
-        if 'last_pf_symbol' not in st.session_state:
-            st.session_state.last_pf_symbol = None
-        
-        # If symbol changed, update the cost input default
-        if symbol_sel != st.session_state.last_pf_symbol:
-            st.session_state.pf_cost_input = float(current_price)
-            st.session_state.last_pf_symbol = symbol_sel
-        elif 'pf_cost_input' not in st.session_state:
-             st.session_state.pf_cost_input = float(current_price)
-
         with c2:
-            qty_input = st.number_input("Cantidad", min_value=1, value=100, key="pf_qty_input")
+            # Default to today
+            purchase_date = st.date_input("Fecha Compra", value=datetime.now(VET).date(), key="pf_date_input")
+
+        # Logic to update price when symbol or date changes
+        if 'last_pf_selection' not in st.session_state:
+            st.session_state.last_pf_selection = (None, None)
+        
+        current_selection = (symbol_sel, purchase_date)
+        
+        if current_selection != st.session_state.last_pf_selection:
+            with st.spinner("Consultando precio..."):
+                # If it's today, we can use the current price
+                if purchase_date == datetime.now(VET).date():
+                     row = data['stocks'][data['stocks']['Symbol'] == symbol_sel]
+                     price_to_set = float(row['Price'].values[0]) if not row.empty else 0.0
+                else:
+                    # Fetch historical
+                    hist_price = fetch_historical_price(symbol_sel, purchase_date)
+                    price_to_set = float(hist_price) if hist_price else 0.0
+                
+                st.session_state.pf_cost_input = price_to_set
+                st.session_state.last_pf_selection = current_selection
+
         with c3:
-            # Key links to session_state so it updates automatically
-            cost_input = st.number_input("Costo Promedio (Bs)", min_value=0.0, step=0.01, format="%.2f", key="pf_cost_input")
+            qty_input = st.number_input("Cantidad", min_value=1, value=100, key="pf_qty_input")
+        with c4:
+            cost_input = st.number_input("Costo (Bs)", min_value=0.0, step=0.01, format="%.2f", key="pf_cost_input")
             
         if st.button("Agregar al Portafolio"):
             try:
-                database.add_holding(symbol_sel, qty_input, cost_input)
+                database.add_holding(symbol_sel, qty_input, cost_input, purchase_date.isoformat())
                 st.success("Portafolio actualizado")
                 time.sleep(1)
                 st.rerun()
@@ -549,7 +599,8 @@ with tab_portfolio:
                 "Valor Total": market_val,
                 "Ganancia/Pérdida": gain_loss,
                 "G/P %": gain_loss_pct,
-                "Cambio Diario %": day_change_pct
+                "Cambio Diario %": day_change_pct,
+                "purchase_date": item.get('purchase_date')
             })
             
         # Summary Metrics
@@ -597,6 +648,7 @@ with tab_portfolio:
                     <div>
                         <div style="font-weight: bold; font-size: 1.2rem;">{display_symbol}</div>
                         <div style="font-size: 0.9rem; color: #ccc;">{p_item['Cantidad']} acciones @ {p_item['Costo Prom.']:,.2f}</div>
+                        <div style="font-size: 0.75rem; color: #64748b;">Comprado el {datetime.fromisoformat(p_item['purchase_date']).strftime('%d/%m/%Y') if p_item['purchase_date'] else 'N/A'}</div>
                     </div>
                     <div style="text-align: right;">
                         <div style="font-weight: bold; font-size: 1.2rem;">{p_item['Valor Total']:,.2f}</div>
