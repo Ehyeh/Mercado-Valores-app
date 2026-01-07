@@ -64,6 +64,26 @@ st.markdown("""
         color: #f8fafc;
         margin: 0.5rem 0;
     }
+
+    /* Mobile Enhancements */
+    @media (max-width: 768px) {
+        .metric-value {
+            font-size: 1.5rem !important;
+        }
+        .metric-card {
+            padding: 12px !important;
+        }
+        .mobile-hide {
+            display: none !important;
+        }
+        .mobile-text-sm {
+            font-size: 0.95rem !important;
+        }
+        .mobile-text-xs {
+            font-size: 0.75rem !important;
+        }
+    }
+    
     .metric-delta {
         font-size: 0.875rem;
         font-weight: 600;
@@ -369,7 +389,8 @@ with tab_market:
         df_display = data['stocks'].copy()
         
         # Table Header with Clickable Buttons
-        header_cols = st.columns([1.5, 1, 1, 1, 1, 1, 1])
+        # Use more responsive weights
+        header_cols = st.columns([2, 1.2, 1, 1.2, 1, 1, 1.2])
         
         # Define sortable columns and their labels
         column_mappings = [
@@ -379,29 +400,33 @@ with tab_market:
             ("ChangePercent", "% CAMBIO"),
             ("Open", "APERTURA"),
             ("Volume", "VOLUMEN"),
-            (None, "RANGO")  # RANGO is not sortable (composite field)
+            (None, "RANGO")
         ]
         
-        for col, (column_key, label) in zip(header_cols, column_mappings):
+        # We'll hide columns 5, 6, 7 on mobile
+        mobile_hide_indices = [4, 5, 6] 
+        
+        for i, (col, (column_key, label)) in enumerate(zip(header_cols, column_mappings)):
             with col:
-                if column_key:  # Only make sortable columns clickable
-                    # Determine if this column is currently sorted
+                is_mobile_hide = i in mobile_hide_indices
+                class_str = "mobile-hide" if is_mobile_hide else ""
+                
+                if column_key:
                     arrow = ""
                     if st.session_state.sort_column == column_key:
                         arrow = " ↑" if st.session_state.sort_ascending else " ↓"
                     
-                    # Create clickable header button
+                    st.markdown(f'<div class="{class_str}">', unsafe_allow_html=True)
                     if st.button(f"{label}{arrow}", key=f"sort_{column_key}", use_container_width=True):
-                        # Toggle sort direction if same column, otherwise set new column
                         if st.session_state.sort_column == column_key:
                             st.session_state.sort_ascending = not st.session_state.sort_ascending
                         else:
                             st.session_state.sort_column = column_key
                             st.session_state.sort_ascending = True
                         st.rerun()
+                    st.markdown('</div>', unsafe_allow_html=True)
                 else:
-                    # Non-sortable column
-                    st.markdown(f"<div style='color: #94a3b8; font-size: 0.8rem; font-weight: bold; margin-bottom: 10px; text-align: center;'>{label}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div class='{class_str}' style='color: #94a3b8; font-size: 0.8rem; font-weight: bold; margin-bottom: 10px; text-align: center;'>{label}</div>", unsafe_allow_html=True)
         
         # Apply sorting
         df_display = df_display.sort_values(
@@ -417,8 +442,8 @@ with tab_market:
                 bg_badge = "rgba(74, 222, 128, 0.1)" if row['Change'] >= 0 else "rgba(248, 113, 113, 0.1)"
                 # arrow_icon = "↑" if row['Change'] >= 0 else "↓"
                 
-                # Layout
-                c1, c2, c3, c4, c5, c6, c7 = st.columns([1.5, 1, 1, 1, 1, 1, 1])
+                # Layout with responsive weights
+                c1, c2, c3, c4, c5, c6, c7 = st.columns([2, 1.2, 1, 1.2, 1, 1, 1.2])
                 
                 # Col 1: Symbol & Name
                 with c1:
@@ -441,7 +466,7 @@ with tab_market:
                 # Col 3: Change
                 with c3:
                     st.markdown(f"""
-                    <div>
+                    <div class="mobile-hide">
                         <div style="font-weight: bold; font-size: 1rem; color: {text_color};">{'+' if row['Change'] > 0 else ''}{row['Change']:,.2f}</div>
                         <div style="font-size: 0.75rem; color: #64748b;">Hoy</div>
                     </div>
@@ -467,7 +492,7 @@ with tab_market:
                 # Col 5: Open
                 with c5:
                      st.markdown(f"""
-                    <div>
+                    <div class="mobile-hide">
                          <div style="font-weight: 600; font-size: 0.95rem;">{row['Open']:,.2f}</div>
                          <div style="font-size: 0.75rem; color: #64748b;">Apertura</div>
                     </div>
@@ -477,7 +502,7 @@ with tab_market:
                 with c6:
                      vol_str = f"{row['Volume']/1000:.1f}K" if row['Volume'] > 1000 else str(row['Volume'])
                      st.markdown(f"""
-                    <div>
+                    <div class="mobile-hide">
                          <div style="font-weight: 600; font-size: 0.95rem;">{vol_str}</div>
                          <div style="font-size: 0.75rem; color: #64748b;">Vol</div>
                     </div>
@@ -486,7 +511,7 @@ with tab_market:
                 # Col 7: Range
                 with c7:
                      st.markdown(f"""
-                    <div style="font-size: 0.8rem;">
+                    <div class="mobile-hide" style="font-size: 0.8rem;">
                          <div style="color: #4ade80;">↑ {row['DayHigh']:,.2f}</div>
                          <div style="color: #f87171;">↓ {row['DayLow']:,.2f}</div>
                     </div>
@@ -644,15 +669,15 @@ with tab_portfolio:
             
             with content_col:
                 st.markdown(f"""
-                <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                <div class="portfolio-card" style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <div style="font-weight: bold; font-size: 1.2rem;">{display_symbol}</div>
-                        <div style="font-size: 0.9rem; color: #ccc;">{p_item['Cantidad']} acciones @ {p_item['Costo Prom.']:,.2f}</div>
-                        <div style="font-size: 0.75rem; color: #64748b;">Comprado el {datetime.fromisoformat(p_item['purchase_date']).strftime('%d/%m/%Y') if p_item['purchase_date'] else 'N/A'}</div>
+                        <div style="font-weight: bold; font-size: 1.2rem;" class="mobile-text-sm">{display_symbol}</div>
+                        <div style="font-size: 0.9rem; color: #ccc;" class="mobile-text-xs">{p_item['Cantidad']} acciones @ {p_item['Costo Prom.']:,.2f}</div>
+                        <div style="font-size: 0.75rem; color: #64748b;" class="mobile-hide">Comprado el {datetime.fromisoformat(p_item['purchase_date']).strftime('%d/%m/%Y') if p_item['purchase_date'] else 'N/A'}</div>
                     </div>
                     <div style="text-align: right;">
-                        <div style="font-weight: bold; font-size: 1.2rem;">{p_item['Valor Total']:,.2f}</div>
-                        <div style="color: {'#4ade80' if p_item['Ganancia/Pérdida'] >= 0 else '#f87171'};">
+                        <div style="font-weight: bold; font-size: 1.2rem;" class="mobile-text-sm">{p_item['Valor Total']:,.2f}</div>
+                        <div style="color: {'#4ade80' if p_item['Ganancia/Pérdida'] >= 0 else '#f87171'};" class="mobile-text-xs">
                             {'+' if p_item['Ganancia/Pérdida'] >= 0 else ''}{p_item['Ganancia/Pérdida']:,.2f} ({p_item['G/P %']:.2f}%)
                         </div>
                     </div>
