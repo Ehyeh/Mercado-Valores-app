@@ -715,6 +715,11 @@ with st.expander("🛠️ Estado del Sistema (Debug)"):
     
     db_exists = True if database.DB_URL else os.path.exists(database.SQLITE_PATH)
     st.write(f"**Estado Conexión:** {'✅ Activa' if db_exists else '❌ Archivo no encontrado'}")
+    
+    if "db_error" in st.session_state:
+        st.error(f"Error de Conexión: {st.session_state.db_error}")
+        st.info("💡 Tip: Verifica que tu DATABASE_URL incluya '?sslmode=require' al final.")
+    
     st.write(f"**Total Activos:** {len(database.get_holdings())}")
     
     if not database.DB_URL and os.path.exists(database.SQLITE_PATH):
