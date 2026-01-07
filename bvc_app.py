@@ -586,31 +586,60 @@ with tab_portfolio:
                 "purchase_date": item.get('purchase_date')
             })
             
-        # Summary Metrics
-        p_col1, p_col2, p_col3 = st.columns(3)
-        total_gain = total_value - total_cost
-        total_gain_pct = (total_gain / total_cost * 100) if total_cost > 0 else 0
+        # --- NEW: Portfolio Visualizations ---
+        st.markdown("#### 📈 Análisis de Rendimiento")
+        v_col1, v_col2 = st.columns([1, 1.5])
         
-        with p_col1:
-            st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-label">Valor Total Portafolio</div>
-                <div class="metric-value">Bs {total_value:,.2f}</div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-        with p_col2:
-            color = "delta-positive" if total_gain >= 0 else "delta-negative"
-            st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-label">Ganancia/Pérdida Total</div>
-                <div class="metric-value" style="font-size: 1.5rem;">Bs {total_gain:,.2f}</div>
-                <div class="metric-delta {color}">
-                    {total_gain_pct:.2f}%
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+        df_pf = pd.DataFrame(portfolio_data)
+        
+        with v_col1:
+            # 1. Allocation Donut Chart
+            fig_donut = px.pie(
+                df_pf, 
+                values='Valor Total', 
+                names='Symbol', 
+                hole=0.5,
+                title="Distribución de Cartera",
+                color_discrete_sequence=px.colors.qualitative.Pastel
+            )
+            fig_donut.update_traces(textposition='inside', textinfo='percent+label')
+            fig_donut.update_layout(
+                showlegend=False, 
+                margin=dict(t=40, b=0, l=0, r=0),
+                height=300,
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                font=dict(color="white")
+            )
+            st.plotly_chart(fig_donut, use_container_width=True)
 
+        with v_col2:
+            # 2. Gain/Loss Bar Chart
+            df_pf = df_pf.sort_values('Ganancia/Pérdida', ascending=True)
+            colors = ['#4ade80' if x >= 0 else '#f87171' for x in df_pf['Ganancia/Pérdida']]
+            
+            fig_bar = go.Figure(go.Bar(
+                x=df_pf['Ganancia/Pérdida'],
+                y=df_pf['Symbol'].str.replace('.CR', ''),
+                orientation='h',
+                marker_color=colors,
+                text=df_pf['Ganancia/Pérdida'].apply(lambda x: f"{x:,.2f}"),
+                textposition='auto',
+            ))
+            
+            fig_bar.update_layout(
+                title="Ganancia / Pérdida por Activo (Bs)",
+                margin=dict(t=40, b=20, l=0, r=0),
+                height=300,
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                xaxis=dict(showgrid=False, zerolinecolor='white'),
+                yaxis=dict(showgrid=False),
+                font=dict(color="white")
+            )
+            st.plotly_chart(fig_bar, use_container_width=True)
+
+        st.markdown("---")
         # Holdings Table
         st.markdown("#### 📜 Mis Activos")
         
