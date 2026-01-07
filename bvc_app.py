@@ -715,6 +715,7 @@ with tab_portfolio:
         st.markdown("#### Portafolio y Listas de Seguimiento")
         
         # 3. Holdings Cards (New Design)
+        items_to_delete = []
         for p_item in portfolio_data:
             display_symbol = p_item['Symbol'].replace('.CR', '')
             symbol_full = p_item['Symbol']
