@@ -475,11 +475,11 @@ st.sidebar.markdown(f"""
 symbol_to_name = dict(zip(data['stocks']['Symbol'], data['stocks']['Name'])) if not data['stocks'].empty else {}
 
 # --- Database Init ---
-import database
+import db_utils
 
 @st.cache_resource
 def init_db_wrapper():
-    database.init_db()
+    db_utils.init_db()
 
 init_db_wrapper()
 
@@ -710,7 +710,7 @@ with tab_market:
 
 # --- TAB: MI PORTAFOLIO ---
 with tab_portfolio:
-    holdings = database.get_holdings()
+    holdings = db_utils.get_holdings()
 
     available_symbols = data['stocks']['Symbol'].tolist() if not data['stocks'].empty else []
     
@@ -811,7 +811,7 @@ with tab_portfolio:
             
         if st.button("Confirmar Compra y Agregar", type="primary", use_container_width=True):
             try:
-                database.add_holding(symbol_sel, qty_input, final_avg_cost, purchase_date.isoformat())
+                db_utils.add_holding(symbol_sel, qty_input, final_avg_cost, purchase_date.isoformat())
                 st.success(f"✅ Se agregaron {qty_input} acciones a un costo real de Bs. {final_avg_cost:,.4f}")
                 time.sleep(1.5)
                 st.rerun()
@@ -1002,7 +1002,7 @@ with tab_portfolio:
                             new_date = st.date_input("Fecha", value=current_date, key=f"edit_date_{p_item['id']}")
                         
                         if st.form_submit_button("💾 Guardar Cambios", use_container_width=True):
-                            database.update_holding(p_item['id'], new_sym, new_qty, new_cost, new_date.isoformat())
+                            db_utils.update_holding(p_item['id'], new_sym, new_qty, new_cost, new_date.isoformat())
                             st.success("✅ Cambios guardados.")
                             del st.session_state[f"is_editing_{p_item['id']}"]
                             time.sleep(1)
@@ -1014,7 +1014,7 @@ with tab_portfolio:
             with col2:
                 if st.button(f"🗑️ Eliminar ({len(items_to_delete)}) Seleccionados", type="primary", use_container_width=True):
                     for del_id in items_to_delete:
-                        database.delete_holding(del_id)
+                        db_utils.delete_holding(del_id)
                     st.success("Activos eliminados correctamente.")
                     time.sleep(1)
                     st.rerun()
@@ -1023,20 +1023,20 @@ with tab_portfolio:
 
 # Footer (outside tabs)
 with st.expander("🛠️ Estado del Sistema (Debug)"):
-    mode = "PostgreSQL (Nube)" if database.DB_URL else "SQLite (Local)"
+    mode = "PostgreSQL (Nube)" if db_utils.DB_URL else "SQLite (Local)"
     st.write(f"**Modo de Conexión:** `{mode}`")
-    st.write(f"**Ubicación/URL:** `{database.DB_NAME if not database.DB_URL else 'Oculta (Secrets)'}`")
+    st.write(f"**Ubicación/URL:** `{db_utils.DB_NAME if not db_utils.DB_URL else 'Oculta (Secrets)'}`")
     
-    db_exists = True if database.DB_URL else os.path.exists(database.SQLITE_PATH)
+    db_exists = True if db_utils.DB_URL else os.path.exists(db_utils.SQLITE_PATH)
     st.write(f"**Estado Conexión:** {'✅ Activa' if db_exists else '❌ Archivo no encontrado'}")
     
     if "db_error" in st.session_state:
         st.error(f"Error de Conexión: {st.session_state.db_error}")
         st.info("💡 Tip: Verifica que tu DATABASE_URL incluya '?sslmode=require' al final.")
     
-    st.write(f"**Total Activos:** {len(database.get_holdings())}")
+    st.write(f"**Total Activos:** {len(db_utils.get_holdings())}")
     
-    if not database.DB_URL and os.path.exists(database.SQLITE_PATH):
-        st.write(f"**Tamaño DB Local:** {os.path.getsize(database.SQLITE_PATH) / 1024:.2f} KB")
+    if not db_utils.DB_URL and os.path.exists(db_utils.SQLITE_PATH):
+        st.write(f"**Tamaño DB Local:** {os.path.getsize(db_utils.SQLITE_PATH) / 1024:.2f} KB")
 
 st.markdown("<div style='text-align: center; color: #64748b; font-size: 0.8rem; padding: 20px 0; border-top: 1px solid rgba(255,255,255,0.05); margin-top: 40px;'>Finanzas Pro v3.0 • Desarrollado con ❤️ para el Mercado de Valores</div>", unsafe_allow_html=True)
