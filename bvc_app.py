@@ -6,6 +6,7 @@ import requests
 import time
 import random
 from datetime import datetime, timedelta, timezone
+from streamlit_autorefresh import st_autorefresh
 
 # Venezuela Timezone (UTC-4)
 VET = timezone(timedelta(hours=-4))
@@ -300,9 +301,17 @@ def generate_history(symbol, start_price, trend=0):
 
 # --- Main Layout ---
 
-# Auto-refresh logic (1 minute = 60 seconds)
-if 'last_refresh' not in st.session_state:
-    st.session_state.last_refresh = time.time()
+# Auto-refresh logic (5 minutes) - Only during Market Hours
+# BVC typical hours: Mon-Fri 9:00 AM - 1:00 PM (approx)
+now_vet = datetime.now(VET)
+is_weekday = now_vet.weekday() < 5 # 0-4 is Mon-Fri
+is_market_hours = 8 <= now_vet.hour < 14 # 8 AM to 2 PM to be safe
+
+if is_weekday and is_market_hours:
+    st_autorefresh(interval=5 * 60 * 1000, key="data_refresh")
+else:
+    # Small status message for the user if they're looking at the app off-hours
+    st.sidebar.info("🌙 Mercado Cerrado - Refresco automático desactivado.")
 
 # Header
 col1, col2 = st.columns([3, 1])
@@ -726,12 +735,3 @@ with st.expander("🛠️ Estado del Sistema (Debug)"):
         st.write(f"**Tamaño DB Local:** {os.path.getsize(database.SQLITE_PATH) / 1024:.2f} KB")
 
 st.markdown("<div style='text-align: center; color: #64748b; font-size: 0.8rem;'>Aplicación de Seguimiento de Portafolio v2.0</div>", unsafe_allow_html=True)
-
-# Auto-refresh mechanic (at the end to not block rendering)
-# We use a placeholder to track time and rerun
-refresh_placeholder = st.empty()
-
-with refresh_placeholder:
-    time.sleep(60)
-    st.cache_data.clear()
-    st.rerun()
