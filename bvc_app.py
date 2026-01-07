@@ -157,6 +157,38 @@ def fetch_bcv_rate():
         print(f"Error fetching BCV rate: {e}")
         return 1.0
 
+@st.cache_data(ttl=300)
+def fetch_binance_rate():
+    """
+    Fetches the Binance P2P VES/USDT rate.
+    """
+    url = "https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search"
+    payload = {
+        "asset": "USDT",
+        "fiat": "VES",
+        "merchantCheck": True,
+        "page": 1,
+        "payTypes": [],
+        "publisherType": "merchant",
+        "rows": 3,
+        "tradeType": "BUY"
+    }
+    headers = {
+        "Content-Type": "application/json",
+        "User-Agent": "Mozilla/5.0"
+    }
+    try:
+        response = requests.post(url, json=payload, headers=headers, timeout=5)
+        response.raise_for_status()
+        data = response.json()
+        if 'data' in data and len(data['data']) > 0:
+            prices = [float(adv['adv']['price']) for adv in data['data']]
+            return sum(prices) / len(prices)
+        return None
+    except Exception as e:
+        print(f"Error fetching Binance rate: {e}")
+        return None
+
 @st.cache_data(ttl=60)
 def fetch_interbono_data():
     """
@@ -410,6 +442,7 @@ with col2:
 # Fetch Data
 data = fetch_interbono_data()
 usd_rate = fetch_bcv_rate()
+binance_rate = fetch_binance_rate()
 
 # Display BCV Rate in Sidebar or Header
 st.sidebar.markdown(f"""
@@ -460,7 +493,7 @@ with tab_market:
     else:
         # Market Summary Hero
         st.markdown("### 📊 Resumen del Mercado")
-        ibc_col1, ibc_col2, ibc_col3 = st.columns([1, 1, 1])
+        ibc_col1, ibc_col2, ibc_col3, ibc_col4 = st.columns([1, 1, 1, 1.2])
 
         with ibc_col1:
             avg_change = data['market_avg_change']
@@ -511,6 +544,26 @@ with tab_market:
                         Acciones
                     </div>
                 </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with ibc_col4:
+            # Dollar Rates Card
+            binance_display = f"Bs. {binance_rate:,.2f}" if binance_rate else "Cargando..."
+            st.markdown(f"""
+            <div class="metric-card" style="border-color: rgba(245, 158, 11, 0.3);">
+                <div class="metric-label">Tipo de Cambio DIVISA</div>
+                <div style="margin-top: 10px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                        <span style="color: #94a3b8; font-size: 0.75rem; font-weight: 600;">🏛️ BCV</span>
+                        <span style="color: #f8fafc; font-size: 0.95rem; font-weight: 700;">Bs. {usd_rate:,.2f}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: #94a3b8; font-size: 0.75rem; font-weight: 600;">🔶 Binance</span>
+                        <span style="color: #f59e0b; font-size: 0.95rem; font-weight: 700;">{binance_display}</span>
+                    </div>
+                </div>
+                <div style="font-size: 0.65rem; color: #64748b; text-align: right; margin-top: 5px;">P2P USDT/VES</div>
             </div>
             """, unsafe_allow_html=True)
 
