@@ -137,6 +137,26 @@ st.markdown("""
         color: #38bdf8 !important;
         background: rgba(56, 189, 248, 0.1) !important;
     }
+
+    /* Portfolio Asset Symbol Styling */
+    .portfolio-symbol-container button {
+        background: transparent !important;
+        border: 1px solid transparent !important;
+        color: #ffffff !important;
+        font-size: 1.1rem !important;
+        font-weight: 800 !important;
+        padding: 4px 8px !important;
+        transition: all 0.2s ease !important;
+        border-radius: 8px !important;
+        margin-left: -8px !important; /* Align with text below */
+    }
+
+    .portfolio-symbol-container button:hover {
+        background: rgba(56, 189, 248, 0.15) !important;
+        border-color: rgba(56, 189, 248, 0.3) !important;
+        color: #38bdf8 !important;
+        cursor: pointer !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -950,9 +970,11 @@ with tab_portfolio:
                         buy_date_str = datetime.fromisoformat(p_item['purchase_date']).strftime('%d/%b/%y') if p_item['purchase_date'] else 'N/A'
                         
                         # Symbol as a button to toggle edit mode
+                        st.markdown('<div class="portfolio-symbol-container">', unsafe_allow_html=True)
                         if st.button(display_symbol, key=f"edit_sym_btn_{p_item['id']}", help="Clic para editar activo"):
                              st.session_state[f"is_editing_{p_item['id']}"] = not st.session_state.get(f"is_editing_{p_item['id']}", False)
                              st.rerun()
+                        st.markdown('</div>', unsafe_allow_html=True)
 
                         st.markdown(f"""
                             <div style="padding: 2px 0; margin-top: -10px;">
