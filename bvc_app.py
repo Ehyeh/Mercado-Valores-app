@@ -319,7 +319,12 @@ data = fetch_interbono_data()
 
 # --- Database Init ---
 import database
-database.init_db()
+
+@st.cache_resource
+def init_db_wrapper():
+    database.init_db()
+
+init_db_wrapper()
 
 # --- Tabs ---
 tab_market, tab_portfolio = st.tabs(["🏛️ Mercado", "💼 Mi Portafolio"])
@@ -703,6 +708,19 @@ with tab_portfolio:
 
 # Footer (outside tabs)
 st.markdown("---")
+with st.expander("🛠️ Estado del Sistema (Debug)"):
+    mode = "PostgreSQL (Nube)" if database.DB_URL else "SQLite (Local)"
+    st.write(f"**Modo de Conexión:** `{mode}`")
+    st.write(f"**Ubicación/URL:** `{database.DB_NAME if not database.DB_URL else 'Oculta (Secrets)'}`")
+    
+    db_exists = True if database.DB_URL else os.path.exists(database.SQLITE_PATH)
+    st.write(f"**Estado Conexión:** {'✅ Activa' if db_exists else '❌ Archivo no encontrado'}")
+    st.write(f"**Total Activos:** {len(database.get_holdings())}")
+    
+    if not database.DB_URL and os.path.exists(database.SQLITE_PATH):
+        st.write(f"**Tamaño DB Local:** {os.path.getsize(database.SQLITE_PATH) / 1024:.2f} KB")
+
+st.markdown("<div style='text-align: center; color: #64748b; font-size: 0.8rem;'>Aplicación de Seguimiento de Portafolio v2.0</div>", unsafe_allow_html=True)
 
 # Auto-refresh mechanic (at the end to not block rendering)
 # We use a placeholder to track time and rerun
