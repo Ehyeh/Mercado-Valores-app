@@ -39,7 +39,10 @@ st.markdown("""
         padding: 20px;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         transition: transform 0.2s;
-        height: 100%;
+        height: 150px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
     }
     .metric-card:hover {
         transform: translateY(-5px);
@@ -422,9 +425,11 @@ with tab_market:
             st.markdown(f"""
             <div class="metric-card">
                 <div class="metric-label">Tendencia Promedio</div>
-                <div class="metric-value" style="font-size: 1.5rem;">{avg_change:.2f}%</div>
-                <div class="metric-delta {delta_color}">
-                    {delta_icon} Mercado General
+                <div>
+                    <div class="metric-value" style="font-size: 1.5rem; margin-bottom: 4px;">{avg_change:.2f}%</div>
+                    <div class="metric-delta {delta_color}">
+                        {delta_icon} Mercado General
+                    </div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -436,11 +441,13 @@ with tab_market:
                 st.markdown(f"""
                 <div class="metric-card">
                     <div class="metric-label">Mayor Alza 🚀</div>
-                    <div style="font-weight: 800; font-size: 1.5rem; color: #f8fafc; margin-top: 8px;">{top_gainer['Symbol'].replace('.CR', '')}</div>
-                    <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{top_gainer['Name']}</div>
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div style="color: #4ade80; font-weight: 700;">+{top_gainer['ChangePercent']:.2f}%</div>
-                        <div style="color: #64748b; font-size: 0.8rem;">Bs. {top_gainer['Price']:,.2f}</div>
+                    <div>
+                        <div style="font-weight: 800; font-size: 1.5rem; color: #f8fafc;">{top_gainer['Symbol'].replace('.CR', '')}</div>
+                        <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{top_gainer['Name']}</div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="color: #4ade80; font-weight: 700;">+{top_gainer['ChangePercent']:.2f}%</div>
+                            <div style="color: #94a3b8; font-size: 0.8rem;">Bs. {top_gainer['Price']:,.2f}</div>
+                        </div>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
@@ -451,9 +458,11 @@ with tab_market:
             st.markdown(f"""
             <div class="metric-card">
                 <div class="metric-label">Volumen Total</div>
-                <div class="metric-value" style="font-size: 1.5rem;">{total_vol:,.0f}</div>
-                <div class="metric-delta delta-positive">
-                    Acciones
+                <div>
+                    <div class="metric-value" style="font-size: 1.5rem; margin-bottom: 4px;">{total_vol:,.0f}</div>
+                    <div class="metric-delta delta-positive">
+                        Acciones
+                    </div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
