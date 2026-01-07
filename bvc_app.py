@@ -482,7 +482,7 @@ with tab_market:
             ("ChangePercent", "% CAMBIO"),
             ("Open", "APERTURA"),
             ("Volume", "VOLUMEN"),
-            (None, "RANGO")
+            ("DayHigh", "RANGO")
         ]
         
         # We'll hide columns 5, 6, 7 on mobile
@@ -593,13 +593,12 @@ with tab_market:
                 # Col 7: Range
                 with c7:
                      st.markdown(f"""
-                    <div class="mobile-hide" style="font-size: 0.8rem;">
+                    <div class="mobile-hide" style="font-size: 0.8rem; text-align: center;">
                          <div style="color: #4ade80;">↑ {row['DayHigh']:,.2f}</div>
                          <div style="color: #f87171;">↓ {row['DayLow']:,.2f}</div>
                     </div>
                     """, unsafe_allow_html=True)
                 
-                st.markdown("<div style='height: 1px; background: rgba(255,255,255,0.05); margin: 8px 0;'></div>", unsafe_allow_html=True)
 
 # --- TAB: MI PORTAFOLIO ---
 with tab_portfolio:
@@ -778,7 +777,6 @@ with tab_portfolio:
                             </div>
                         """, unsafe_allow_html=True)
                     
-                    st.markdown("<div style='height: 1px; background: rgba(255,255,255,0.05); margin: 5px 0;'></div>", unsafe_allow_html=True)
 
                 with c_del:
                     st.write("") # Space
@@ -797,7 +795,6 @@ with tab_portfolio:
                     time.sleep(1)
                     st.rerun()
 
-        st.markdown("---")
         # 3. Add Asset Section (Moved to bottom)
         with st.expander("➕ Agregar Activo", expanded=False):
             # Interactive Add Asset
@@ -853,7 +850,6 @@ with tab_portfolio:
                     st.error(f"Error al guardar: {e}")
 
 # Footer (outside tabs)
-st.markdown("---")
 with st.expander("🛠️ Estado del Sistema (Debug)"):
     mode = "PostgreSQL (Nube)" if database.DB_URL else "SQLite (Local)"
     st.write(f"**Modo de Conexión:** `{mode}`")
