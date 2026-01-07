@@ -147,13 +147,13 @@ def fetch_interbono_data():
     
     # List of symbols derived from Interbono's website
     symbols = [
-        "ABC-A.CR", "BNC.CR", "BPV.CR", "BVCC.CR", "BVL.CR",
-        "CCP-B.CR", "CCR.CR", "CGQ.CR", "CRM-A.CR", "DOM.CR",
-        "EFE.CR", "ENV.CR", "GMC-B.CR", "GZL.CR", "ICP-B.CR",
-        "IVC-A.CR", "IVC-B.CR", "MPA.CR", "MVZ-A.CR", "MVZ-B.CR",
-        "PCP-B.CR", "PGR.CR", "PIV-B.CR", "PTN.CR", "RFM.CR",
-        "RST.CR", "RST-B.CR", "SVS.CR", "TDV-D.CR", "TPG.CR",
-        "VNA-B.CR"
+        "ABC-A.CR", "BEX.CR", "BNC.CR", "BPV.CR", "BVE.CR", "BVCC.CR", "BVL.CR",
+        "CCP-B.CR", "CCR.CR", "CGQ.CR", "CIE.CR", "CRM-A.CR", "DOM.CR",
+        "EFE.CR", "ENV.CR", "FNC.CR", "FNV.CR", "FVIA.CR", "FVIB.CR",
+        "GMC-B.CR", "GZL.CR", "ICP-B.CR", "INV.CR", "IVC-A.CR", "IVC-B.CR",
+        "MPA.CR", "MVZ-A.CR", "MVZ-B.CR", "PCP-B.CR", "PER.CR", "PGR.CR", "PIV-B.CR",
+        "PTN.CR", "RFM.CR", "RST.CR", "RST-B.CR", "SVS.CR", "TDV-D.CR",
+        "TPG.CR", "VNA-B.CR"
     ]
     
     yahoo_urls = [f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}" for symbol in symbols]
