@@ -609,6 +609,47 @@ with tab_portfolio:
     if not holdings:
         st.info("Tu portafolio está vacío. Agrega acciones arriba para comenzar. (Ahora se guardan en Base de Datos)")
     else:
+        # Calculate Logic
+        portfolio_data = []
+        total_value = 0.0
+        total_cost = 0.0
+        
+        for item in holdings:
+            # Get current market data - with proper error handling
+            curr_price = item['avg_cost']  # Default fallback
+            day_change_pct = 0.0
+            
+            # Only try to access market data if stocks data is available and not empty
+            if data['status'] == 'online' and not data['stocks'].empty:
+                try:
+                    market_dat = data['stocks'][data['stocks']['Symbol'] == item['symbol']]
+                    if not market_dat.empty:
+                        curr_price = market_dat['Price'].values[0]
+                        day_change_pct = market_dat['ChangePercent'].values[0]
+                except (KeyError, IndexError):
+                    pass
+            
+            market_val = curr_price * item['qty']
+            cost_val = item['avg_cost'] * item['qty']
+            gain_loss = market_val - cost_val
+            gain_loss_pct = (gain_loss / cost_val * 100) if cost_val > 0 else 0
+            
+            total_value += market_val
+            total_cost += cost_val
+            
+            portfolio_data.append({
+                "id": item['id'],
+                "Symbol": item['symbol'],
+                "Cantidad": item['qty'],
+                "Precio Mercado": curr_price,
+                "Costo Prom.": item['avg_cost'],
+                "Valor Total": market_val,
+                "Ganancia/Pérdida": gain_loss,
+                "G/P %": gain_loss_pct,
+                "Cambio Diario %": day_change_pct,
+                "purchase_date": item.get('purchase_date')
+            })
+
         # --- Premium Portfolio UI (Inspired by Image) ---
         df_pf = pd.DataFrame(portfolio_data)
         
