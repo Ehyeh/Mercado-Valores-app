@@ -139,7 +139,9 @@ st.markdown("""
     }
 
     /* Sibling Marker Hack for Portfolio Symbols */
-    .stMarkdown:has(.portfolio-symbol-marker) + div[data-testid="stButton"] button {
+    /* Target both direct siblings (older Streamlit) and container siblings (newer Streamlit) */
+    .stMarkdown:has(.portfolio-symbol-marker) + div[data-testid="stButton"] button,
+    div:has(.portfolio-symbol-marker) + div button {
         background-color: transparent !important;
         border: 1px solid transparent !important;
         box-shadow: none !important;
@@ -153,7 +155,8 @@ st.markdown("""
         border-radius: 6px !important;
     }
 
-    .stMarkdown:has(.portfolio-symbol-marker) + div[data-testid="stButton"] button:hover {
+    .stMarkdown:has(.portfolio-symbol-marker) + div[data-testid="stButton"] button:hover,
+    div:has(.portfolio-symbol-marker) + div button:hover {
         background-color: rgba(56, 189, 248, 0.15) !important;
         border-color: rgba(56, 189, 248, 0.4) !important;
         color: #38bdf8 !important;
@@ -161,7 +164,9 @@ st.markdown("""
     }
 
     .stMarkdown:has(.portfolio-symbol-marker) + div[data-testid="stButton"] button:active,
-    .stMarkdown:has(.portfolio-symbol-marker) + div[data-testid="stButton"] button:focus {
+    .stMarkdown:has(.portfolio-symbol-marker) + div[data-testid="stButton"] button:focus,
+    div:has(.portfolio-symbol-marker) + div button:active,
+    div:has(.portfolio-symbol-marker) + div button:focus {
         background-color: rgba(56, 189, 248, 0.1) !important;
         color: #38bdf8 !important;
         outline: none !important;
@@ -981,7 +986,7 @@ with tab_portfolio:
                         
                         # Symbol as a button to toggle edit mode (with marker for CSS)
                         st.markdown('<div class="portfolio-symbol-marker"></div>', unsafe_allow_html=True)
-                        if st.button(display_symbol, key=f"edit_sym_btn_{p_item['id']}", help="Clic para editar activo"):
+                        if st.button(display_symbol, key=f"edit_sym_btn_{p_item['id']}", help="Clic para editar activo", type="tertiary"):
                              st.session_state[f"is_editing_{p_item['id']}"] = not st.session_state.get(f"is_editing_{p_item['id']}", False)
                              st.rerun()
 
