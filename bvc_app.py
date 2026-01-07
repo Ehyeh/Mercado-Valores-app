@@ -656,63 +656,79 @@ with tab_portfolio:
         # --- Premium Portfolio UI (Inspired by Image) ---
         df_pf = pd.DataFrame(portfolio_data)
         
-        # 1. Main Header Chart Area
-        st.markdown("#### Rendimiento del Portafolio")
-        
-        main_col1, main_col2 = st.columns([1.5, 1])
-        
-        with main_col1:
-            total_gain = total_value - total_cost
-            total_gain_pct = (total_gain / total_cost * 100) if total_cost > 0 else 0
-            color_hex = "#4ade80" if total_gain >= 0 else "#f87171"
-            
-            st.markdown(f"""
-                <div style="margin-bottom: 20px;">
-                    <div style="font-size: 2.5rem; font-weight: 800; color: white;">Bs {total_value:,.2f}</div>
-                    <div style="color: {color_hex}; font-size: 1.1rem; font-weight: 600;">
-                        {'+' if total_gain >= 0 else ''}Bs {total_gain:,.2f} ({total_gain_pct:.2f}%) <span style="color: #94a3b8; font-weight: 400;">Último año</span>
-                    </div>
-                </div>
+        # 1. Dashboard Header (Metrics + Chart)
+        with st.container():
+            st.markdown("""
+                <style>
+                    .dashboard-container {
+                        background: rgba(30, 41, 59, 0.4);
+                        border: 1px solid rgba(255, 255, 255, 0.05);
+                        border-radius: 16px;
+                        padding: 20px;
+                        margin-bottom: 20px;
+                    }
+                </style>
             """, unsafe_allow_html=True)
-        
-        # 2. Portfolio History Chart
-        with st.spinner("Generando análisis de rendimiento..."):
-            symbols = [h['symbol'] for h in holdings]
-            hist_df = fetch_multi_history(symbols)
             
-            if not hist_df.empty:
-                # Calculate portfolio value over time (simplified: current quantities * history)
-                portfolio_history = pd.Series(0, index=hist_df.index)
-                for item in holdings:
-                    if item['symbol'] in hist_df.columns:
-                        portfolio_history += hist_df[item['symbol']] * item['qty']
+            st.markdown('<div class="dashboard-container">', unsafe_allow_html=True)
+            
+            d_col1, d_col2 = st.columns([1, 2])
+            
+            with d_col1:
+                total_gain = total_value - total_cost
+                total_gain_pct = (total_gain / total_cost * 100) if total_cost > 0 else 0
+                color_hex = "#4ade80" if total_gain >= 0 else "#f87171"
                 
-                fig_main = go.Figure()
-                fig_main.add_trace(go.Scatter(
-                    x=portfolio_history.index, 
-                    y=portfolio_history.values,
-                    mode='lines',
-                    line=dict(color="#f59e0b", width=3),
-                    fill='tozeroy',
-                    fillcolor='rgba(245, 158, 11, 0.05)',
-                    name="Portafolio"
-                ))
+                st.markdown(f"""
+                    <div style="margin-top: 10px;">
+                        <div style="font-size: 0.85rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Balance Total</div>
+                        <div style="font-size: 2.2rem; font-weight: 800; color: white; margin: 4px 0;">Bs {total_value:,.2f}</div>
+                        <div style="color: {color_hex}; font-size: 1rem; font-weight: 600;">
+                            {'+' if total_gain >= 0 else ''}Bs {total_gain:,.2f} ({total_gain_pct:.2f}%)
+                        </div>
+                        <div style="font-size: 0.75rem; color: #64748b; margin-top: 4px;">Rendimiento Total (Histórico)</div>
+                    </div>
+                """, unsafe_allow_html=True)
+            
+            with d_col2:
+                # 2. Portfolio History Chart (Inline)
+                symbols = [h['symbol'] for h in holdings]
+                hist_df = fetch_multi_history(symbols)
                 
-                fig_main.update_layout(
-                    margin=dict(l=0, r=0, t=20, b=0),
-                    height=250,
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    xaxis=dict(showgrid=False, color="#64748b"),
-                    yaxis=dict(showgrid=False, visible=False),
-                    hovermode="x unified"
-                )
-                st.plotly_chart(fig_main, use_container_width=True, config={'displayModeBar': False})
-            else:
-                st.info("No hay suficientes datos históricos para mostrar la gráfica de rendimiento.")
+                if not hist_df.empty:
+                    portfolio_history = pd.Series(0, index=hist_df.index)
+                    for item in holdings:
+                        if item['symbol'] in hist_df.columns:
+                            portfolio_history += hist_df[item['symbol']] * item['qty']
+                    
+                    fig_main = go.Figure()
+                    fig_main.add_trace(go.Scatter(
+                        x=portfolio_history.index, 
+                        y=portfolio_history.values,
+                        mode='lines',
+                        line=dict(color="#f59e0b", width=2.5),
+                        fill='tozeroy',
+                        fillcolor='rgba(245, 158, 11, 0.03)',
+                        name="Valor"
+                    ))
+                    
+                    fig_main.update_layout(
+                        margin=dict(l=0, r=0, t=10, b=0),
+                        height=160,
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        xaxis=dict(showgrid=False, color="#475569", tickfont=dict(size=10)),
+                        yaxis=dict(showgrid=False, visible=False),
+                        hovermode="x unified"
+                    )
+                    st.plotly_chart(fig_main, use_container_width=True, config={'displayModeBar': False})
+                else:
+                    st.info("Cargando datos históricos...")
+            
+            st.markdown('</div>', unsafe_allow_html=True)
 
-        st.markdown("<div style='height: 30px;'></div>", unsafe_allow_html=True)
-        st.markdown("#### Portafolio y Listas de Seguimiento")
+        # 3. Allocation / Strategy Summary (Optional row to fill space)
+        # st.markdown("#### Distribución y Activos")
         
         # 3. Holdings Cards (New Design)
         items_to_delete = []
@@ -734,11 +750,15 @@ with tab_portfolio:
                     col_info, col_spark, col_val = st.columns([1.2, 0.8, 1])
                     
                     with col_info:
+                        buy_date_str = datetime.fromisoformat(p_item['purchase_date']).strftime('%d/%b/%y') if p_item['purchase_date'] else 'N/A'
                         st.markdown(f"""
-                            <div style="padding: 5px 0;">
-                                <div style="font-weight: 800; font-size: 1.1rem; color: white;">{display_symbol}</div>
-                                <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 2px;">{symbol_to_name.get(symbol_full, display_symbol)}</div>
-                                <div style="font-size: 0.8rem; color: #cbd5e1; font-weight: 500;">{p_item['Cantidad']:,g} acciones @ Bs {p_item['Costo Prom.']:,.2f}</div>
+                            <div style="padding: 2px 0;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-weight: 800; font-size: 1rem; color: white;">{display_symbol}</span>
+                                    <span style="font-size: 0.65rem; color: #475569; background: rgba(71, 85, 105, 0.1); padding: 1px 5px; border-radius: 4px; font-weight: 600; text-transform: uppercase;">{buy_date_str}</span>
+                                </div>
+                                <div style="font-size: 0.7rem; color: #64748b; margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;">{symbol_to_name.get(symbol_full, display_symbol)}</div>
+                                <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 500;">{p_item['Cantidad']:,g} acc. @ Bs {p_item['Costo Prom.']:,.2f}</div>
                             </div>
                         """, unsafe_allow_html=True)
                     
