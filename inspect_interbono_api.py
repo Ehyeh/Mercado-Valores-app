@@ -1,4 +1,4 @@
-import requests
+﻿import requests
 import json
 import logging
 
@@ -9,10 +9,13 @@ def test_interbono_api():
     url = "https://getmarketvalues-hdiyird7fq-uc.a.run.app"
     
     symbols = [
-        "ABC-A.CR", "BNC.CR", "BPV.CR", "BVCC.CR", "BVL.CR", 
-        "CRM-A.CR", "DOM.CR", "EFE.CR", "ENV.CR", "GZL.CR", 
-        "ICP-B.CR", "MPA.CR", "MVZ-A.CR", "MVZ-B.CR", "PGR.CR", 
-        "PIV-B.CR", "RST.CR", "RST-B.CR", "SVS.CR", "TDV-D.CR", "TPG.CR"
+        "ABC-A.CR", "BNC.CR", "BPV.CR", "BVCC.CR", "BVL.CR",
+        "CCP-B.CR", "CCR.CR", "CGQ.CR", "CRM-A.CR", "DOM.CR",
+        "EFE.CR", "ENV.CR", "GMC-B.CR", "GZL.CR", "ICP-B.CR",
+        "IVC-A.CR", "IVC-B.CR", "MPA.CR", "MVZ-A.CR", "MVZ-B.CR",
+        "PCP-B.CR", "PGR.CR", "PIV-B.CR", "PTN.CR", "RFM.CR",
+        "RST.CR", "RST-B.CR", "SVS.CR", "TDV-D.CR", "TPG.CR",
+        "VNA-B.CR"
     ]
     
     # Construct the payload as seen in the JS code
@@ -40,7 +43,7 @@ def test_interbono_api():
             results = data['data']
             logger.info(f"Received data for {len(results)} symbols")
             
-            for i, result in enumerate(results[:5]): # Show first 5
+            for i, result in enumerate(results):
                 # The JS code accesses result.chart.result[0].meta
                 try:
                     meta = result['chart']['result'][0]['meta']
@@ -48,8 +51,7 @@ def test_interbono_api():
                     price = meta.get('regularMarketPrice')
                     print(f"Symbol: {symbol}, Price: {price}")
                 except Exception as e:
-                    print(f"Error parsing item {i}: {e}")
-                    # print(json.dumps(result, indent=2))
+                    print(f"Error parsing item {i} ({symbols[i]}): {e}")
         else:
             logger.error("Response JSON does not contain 'data' field")
             print(json.dumps(data, indent=2))
