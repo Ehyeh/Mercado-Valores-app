@@ -354,8 +354,8 @@ def create_sparkline(series, color="#4ade80"):
     ))
     fig.update_layout(
         margin=dict(l=0, r=0, t=0, b=0),
-        height=40,
-        width=120,
+        height=30,
+        width=80,
         showlegend=False,
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
@@ -730,14 +730,15 @@ with tab_portfolio:
                 c_main, c_del = st.columns([0.95, 0.05])
                 
                 with c_main:
-                    # Inner columns for the card content
-                    col_info, col_spark, col_val = st.columns([1, 1, 1])
+                    # Inner columns for the card content - adjusted weights
+                    col_info, col_spark, col_val = st.columns([1.2, 0.8, 1])
                     
                     with col_info:
                         st.markdown(f"""
-                            <div style="padding: 10px 0;">
+                            <div style="padding: 5px 0;">
                                 <div style="font-weight: 800; font-size: 1.1rem; color: white;">{display_symbol}</div>
-                                <div style="font-size: 0.8rem; color: #94a3b8;">{symbol_to_name.get(symbol_full, display_symbol)}</div>
+                                <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 2px;">{symbol_to_name.get(symbol_full, display_symbol)}</div>
+                                <div style="font-size: 0.8rem; color: #cbd5e1; font-weight: 500;">{p_item['Cantidad']:,g} acciones @ Bs {p_item['Costo Prom.']:,.2f}</div>
                             </div>
                         """, unsafe_allow_html=True)
                     
