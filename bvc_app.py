@@ -133,6 +133,16 @@ st.markdown("""
         color: #38bdf8 !important;
         background: rgba(56, 189, 248, 0.1) !important;
     }
+    
+    /* Dashboard Header */
+    .dashboard-container {
+        background: rgba(30, 41, 59, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        padding: 16px 20px;
+        margin-bottom: 20px;
+        margin-top: -15px; /* Pull it up closer to tabs */
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -602,8 +612,6 @@ with tab_market:
 
 # --- TAB: MI PORTAFOLIO ---
 with tab_portfolio:
-    
-
     # 2. Portfolio Summary
     holdings = database.get_holdings()
 
@@ -655,20 +663,7 @@ with tab_portfolio:
         df_pf = pd.DataFrame(portfolio_data)
         
         # 1. Dashboard Header (Metrics + Chart)
-        with st.container():
-            st.markdown("""
-                <style>
-                    .dashboard-container {
-                        background: rgba(30, 41, 59, 0.4);
-                        border: 1px solid rgba(255, 255, 255, 0.05);
-                        border-radius: 16px;
-                        padding: 20px;
-                        margin-bottom: 20px;
-                    }
-                </style>
-            """, unsafe_allow_html=True)
-            
-            st.markdown('<div class="dashboard-container">', unsafe_allow_html=True)
+        st.markdown('<div class="dashboard-container">', unsafe_allow_html=True)
             
             d_col1, d_col2 = st.columns([1, 2])
             
@@ -678,7 +673,7 @@ with tab_portfolio:
                 color_hex = "#4ade80" if total_gain >= 0 else "#f87171"
                 
                 st.markdown(f"""
-                    <div style="margin-top: 10px;">
+                    <div>
                         <div style="font-size: 0.85rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Balance Total</div>
                         <div style="font-size: 2.2rem; font-weight: 800; color: white; margin: 4px 0;">Bs {total_value:,.2f}</div>
                         <div style="color: {color_hex}; font-size: 1rem; font-weight: 600;">
@@ -779,8 +774,6 @@ with tab_portfolio:
                     
 
                 with c_del:
-                    st.write("") # Space
-                    st.write("")
                     if st.checkbox("", key=f"del_chk_{p_item['id']}", label_visibility="collapsed"):
                         items_to_delete.append(p_item['id'])
 
