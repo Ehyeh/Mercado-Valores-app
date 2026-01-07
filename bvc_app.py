@@ -413,7 +413,7 @@ with tab_market:
     else:
         # Market Summary Hero
         st.markdown("### 📊 Resumen del Mercado")
-        ibc_col1, ibc_col2, ibc_col3 = st.columns([1, 2, 1])
+        ibc_col1, ibc_col2, ibc_col3 = st.columns([1, 1, 1])
 
         with ibc_col1:
             avg_change = data['market_avg_change']
@@ -436,14 +436,12 @@ with tab_market:
                 st.markdown(f"""
                 <div class="metric-card">
                     <div class="metric-label">Mayor Alza 🚀</div>
+                    <div style="font-weight: 800; font-size: 1.5rem; color: #f8fafc; margin-top: 8px;">{top_gainer['Symbol'].replace('.CR', '')}</div>
+                    <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{top_gainer['Name']}</div>
                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <div class="metric-value">{top_gainer['Symbol'].replace('.CR', '')}</div>
-                            <div style="font-size: 0.9rem; color: #94a3b8;">{top_gainer['Name']}</div>
-                        </div>
-                        <div class="metric-value" style="color: #4ade80;">+{top_gainer['ChangePercent']:.2f}%</div>
+                        <div style="color: #4ade80; font-weight: 700;">+{top_gainer['ChangePercent']:.2f}%</div>
+                        <div style="color: #64748b; font-size: 0.8rem;">Bs. {top_gainer['Price']:,.2f}</div>
                     </div>
-                    <div style="color: #94a3b8;">Precio: {top_gainer['Price']:,.2f}</div>
                 </div>
                 """, unsafe_allow_html=True)
 
