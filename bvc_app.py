@@ -948,12 +948,15 @@ with tab_portfolio:
                     
                     with col_info:
                         buy_date_str = datetime.fromisoformat(p_item['purchase_date']).strftime('%d/%b/%y') if p_item['purchase_date'] else 'N/A'
+                        
+                        # Symbol as a button to toggle edit mode
+                        if st.button(display_symbol, key=f"edit_sym_btn_{p_item['id']}", help="Clic para editar activo"):
+                             st.session_state[f"is_editing_{p_item['id']}"] = not st.session_state.get(f"is_editing_{p_item['id']}", False)
+                             st.rerun()
+
                         st.markdown(f"""
-                            <div style="padding: 2px 0;">
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <span style="font-weight: 800; font-size: 1rem; color: white;">{display_symbol}</span>
-                                    <span style="font-size: 0.65rem; color: #475569; background: rgba(71, 85, 105, 0.1); padding: 1px 5px; border-radius: 4px; font-weight: 600; text-transform: uppercase;">{buy_date_str}</span>
-                                </div>
+                            <div style="padding: 2px 0; margin-top: -10px;">
+                                <div style="font-size: 0.65rem; color: #475569; background: rgba(71, 85, 105, 0.1); padding: 1px 5px; border-radius: 4px; font-weight: 600; text-transform: uppercase; display: inline-block; margin-bottom: 4px;">{buy_date_str}</div>
                                 <div style="font-size: 0.7rem; color: #64748b; margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;">{symbol_to_name.get(symbol_full, display_symbol)}</div>
                                 <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 500;">{p_item['Cantidad']:,g} acc. @ Bs. {p_item['Costo Prom.']:,.2f}</div>
                                 <div style="font-size: 0.7rem; color: #38bdf8;">$ {p_item['Costo Prom.']/usd_rate:,.4f}</div>
@@ -980,12 +983,8 @@ with tab_portfolio:
                         """, unsafe_allow_html=True)
 
                 with c_actions:
-                    btn_edit = st.button("✏️", key=f"edit_btn_{p_item['id']}", help="Editar activo")
                     if st.checkbox("", key=f"del_chk_{p_item['id']}", label_visibility="collapsed"):
                         items_to_delete.append(p_item['id'])
-                
-                if btn_edit:
-                    st.session_state[f"is_editing_{p_item['id']}"] = not st.session_state.get(f"is_editing_{p_item['id']}", False)
 
                 if st.session_state.get(f"is_editing_{p_item['id']}", False):
                     with st.form(key=f"edit_form_{p_item['id']}"):
