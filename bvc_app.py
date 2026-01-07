@@ -138,8 +138,8 @@ st.markdown("""
         background: rgba(56, 189, 248, 0.1) !important;
     }
 
-    /* Portfolio Asset Symbol Styling - Force Transparency */
-    .portfolio-symbol-container [data-testid="stButton"] button {
+    /* Sibling Marker Hack for Portfolio Symbols */
+    .stMarkdown:has(.portfolio-symbol-marker) + div[data-testid="stButton"] button {
         background-color: transparent !important;
         border: 1px solid transparent !important;
         box-shadow: none !important;
@@ -153,14 +153,15 @@ st.markdown("""
         border-radius: 6px !important;
     }
 
-    .portfolio-symbol-container [data-testid="stButton"] button:hover {
+    .stMarkdown:has(.portfolio-symbol-marker) + div[data-testid="stButton"] button:hover {
         background-color: rgba(56, 189, 248, 0.15) !important;
         border-color: rgba(56, 189, 248, 0.4) !important;
         color: #38bdf8 !important;
+        cursor: pointer !important;
     }
 
-    .portfolio-symbol-container [data-testid="stButton"] button:active,
-    .portfolio-symbol-container [data-testid="stButton"] button:focus {
+    .stMarkdown:has(.portfolio-symbol-marker) + div[data-testid="stButton"] button:active,
+    .stMarkdown:has(.portfolio-symbol-marker) + div[data-testid="stButton"] button:focus {
         background-color: rgba(56, 189, 248, 0.1) !important;
         color: #38bdf8 !important;
         outline: none !important;
@@ -978,12 +979,11 @@ with tab_portfolio:
                     with col_info:
                         buy_date_str = datetime.fromisoformat(p_item['purchase_date']).strftime('%d/%b/%y') if p_item['purchase_date'] else 'N/A'
                         
-                        # Symbol as a button to toggle edit mode
-                        st.markdown('<div class="portfolio-symbol-container">', unsafe_allow_html=True)
+                        # Symbol as a button to toggle edit mode (with marker for CSS)
+                        st.markdown('<div class="portfolio-symbol-marker"></div>', unsafe_allow_html=True)
                         if st.button(display_symbol, key=f"edit_sym_btn_{p_item['id']}", help="Clic para editar activo"):
                              st.session_state[f"is_editing_{p_item['id']}"] = not st.session_state.get(f"is_editing_{p_item['id']}", False)
                              st.rerun()
-                        st.markdown('</div>', unsafe_allow_html=True)
 
                         st.markdown(f"""
                             <div style="padding: 2px 0; margin-top: -10px;">
