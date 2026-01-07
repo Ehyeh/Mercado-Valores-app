@@ -992,10 +992,10 @@ with tab_portfolio:
 
                         st.markdown(f"""
                             <div style="padding: 2px 0; margin-top: -10px;">
-                                <div style="font-size: 0.65rem; color: #475569; background: rgba(71, 85, 105, 0.1); padding: 1px 5px; border-radius: 4px; font-weight: 600; text-transform: uppercase; display: inline-block; margin-bottom: 4px;">{buy_date_str}</div>
-                                <div style="font-size: 0.7rem; color: #64748b; margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;">{symbol_to_name.get(symbol_full, display_symbol)}</div>
-                                <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 500;">{p_item['Cantidad']:,g} acc. @ Bs. {p_item['Costo Prom.']:,.2f}</div>
-                                <div style="font-size: 0.7rem; color: #38bdf8;">$ {p_item['Costo Prom.']/usd_rate:,.4f}</div>
+                                <div style="font-size: 0.75rem; color: #94a3b8; background: rgba(255, 255, 255, 0.05); padding: 2px 6px; border-radius: 4px; font-weight: 600; text-transform: uppercase; display: inline-block; margin-bottom: 6px;">{buy_date_str}</div>
+                                <div style="font-size: 0.85rem; color: #cbd5e1; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;">{symbol_to_name.get(symbol_full, display_symbol)}</div>
+                                <div style="font-size: 0.85rem; color: #e2e8f0; font-weight: 500;">{p_item['Cantidad']:,g} acc. @ Bs. {p_item['Costo Prom.']:,.2f}</div>
+                                <div style="font-size: 0.8rem; color: #38bdf8;">$ {p_item['Costo Prom.']/usd_rate:,.4f}</div>
                             </div>
                         """, unsafe_allow_html=True)
                     
