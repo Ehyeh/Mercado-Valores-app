@@ -133,16 +133,6 @@ st.markdown("""
         color: #38bdf8 !important;
         background: rgba(56, 189, 248, 0.1) !important;
     }
-    
-    /* Dashboard Header */
-    .dashboard-container {
-        background: rgba(30, 41, 59, 0.4);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        border-radius: 16px;
-        padding: 16px 20px;
-        margin-bottom: 20px;
-        margin-top: -15px; /* Pull it up closer to tabs */
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -663,7 +653,6 @@ with tab_portfolio:
         df_pf = pd.DataFrame(portfolio_data)
         
         # 1. Dashboard Header (Metrics + Chart)
-        st.markdown('<div class="dashboard-container">', unsafe_allow_html=True)
             
         d_col1, d_col2 = st.columns([1, 2])
         
@@ -718,7 +707,6 @@ with tab_portfolio:
             else:
                 st.info("Cargando datos históricos...")
         
-        st.markdown('</div>', unsafe_allow_html=True)
 
         # 3. Allocation / Strategy Summary (Optional row to fill space)
         # st.markdown("#### Distribución y Activos")
