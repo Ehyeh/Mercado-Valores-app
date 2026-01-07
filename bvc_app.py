@@ -391,6 +391,9 @@ with col2:
 # Fetch Data
 data = fetch_interbono_data()
 
+# Helper Mapping (Global)
+symbol_to_name = dict(zip(data['stocks']['Symbol'], data['stocks']['Name'])) if not data['stocks'].empty else {}
+
 # --- Database Init ---
 import database
 
@@ -779,9 +782,6 @@ with tab_portfolio:
             # Interactive Add Asset
             c1, c2, c3, c4 = st.columns([1.5, 1, 1, 1])
             available_symbols = data['stocks']['Symbol'].tolist() if not data['stocks'].empty else []
-            
-            # Helper Dict
-            symbol_to_name = dict(zip(data['stocks']['Symbol'], data['stocks']['Name'])) if not data['stocks'].empty else {}
             
             def format_func(symbol):
                 s_clean = symbol.replace('.CR', '')
