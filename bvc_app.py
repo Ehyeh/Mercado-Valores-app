@@ -574,14 +574,14 @@ def transaction_details(item, usd_rate, available_symbols, format_func):
     c1, c2 = st.columns(2)
     with c1:
         st.markdown(f"""
-            <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px;">
+            <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; min-height: 85px; display: flex; flex-direction: column; justify-content: center;">
                 <div style="font-size: 0.8rem; color: #94a3b8;">📅 Fecha</div>
                 <div style="font-weight: 600; font-size: 1rem;">{p_date.strftime('%d/%m/%Y')}</div>
             </div>
         """, unsafe_allow_html=True)
     with c2:
         st.markdown(f"""
-            <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px;">
+            <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; min-height: 85px; display: flex; flex-direction: column; justify-content: center;">
                 <div style="font-size: 0.8rem; color: #94a3b8;">💳 Acciones</div>
                 <div style="font-weight: 600; font-size: 1rem;">{qty:,.0f} {symbol.replace('.CR', '')}</div>
             </div>
