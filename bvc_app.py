@@ -891,6 +891,25 @@ with tab_market:
                     """, unsafe_allow_html=True)
                 
 
+
+    # Footer (inside Market tab)
+    with st.expander("🛠️ Estado del Sistema (Debug)"):
+        mode = "PostgreSQL (Nube)" if db_utils.DB_URL else "SQLite (Local)"
+        st.write(f"**Modo de Conexión:** `{mode}`")
+        st.write(f"**Ubicación/URL:** `{db_utils.DB_NAME if not db_utils.DB_URL else 'Oculta (Secrets)'}`")
+        
+        db_exists = True if db_utils.DB_URL else os.path.exists(db_utils.SQLITE_PATH)
+        st.write(f"**Estado Conexión:** {'✅ Activa' if db_exists else '❌ Archivo no encontrado'}")
+        
+        if "db_error" in st.session_state:
+            st.error(f"Error de Conexión: {st.session_state.db_error}")
+            st.info("💡 Tip: Verifica que tu DATABASE_URL incluya '?sslmode=require' al final.")
+        
+        st.write(f"**Total Activos:** {len(db_utils.get_holdings())}")
+        
+        if not db_utils.DB_URL and os.path.exists(db_utils.SQLITE_PATH):
+            st.write(f"**Tamaño DB Local:** {os.path.getsize(db_utils.SQLITE_PATH) / 1024:.2f} KB")
+
 # --- TAB: MI PORTAFOLIO ---
 with tab_portfolio:
     holdings = db_utils.get_holdings()
@@ -1218,22 +1237,6 @@ with tab_portfolio:
 
 
 
-# Footer (outside tabs)
-with st.expander("🛠️ Estado del Sistema (Debug)"):
-    mode = "PostgreSQL (Nube)" if db_utils.DB_URL else "SQLite (Local)"
-    st.write(f"**Modo de Conexión:** `{mode}`")
-    st.write(f"**Ubicación/URL:** `{db_utils.DB_NAME if not db_utils.DB_URL else 'Oculta (Secrets)'}`")
-    
-    db_exists = True if db_utils.DB_URL else os.path.exists(db_utils.SQLITE_PATH)
-    st.write(f"**Estado Conexión:** {'✅ Activa' if db_exists else '❌ Archivo no encontrado'}")
-    
-    if "db_error" in st.session_state:
-        st.error(f"Error de Conexión: {st.session_state.db_error}")
-        st.info("💡 Tip: Verifica que tu DATABASE_URL incluya '?sslmode=require' al final.")
-    
-    st.write(f"**Total Activos:** {len(db_utils.get_holdings())}")
-    
-    if not db_utils.DB_URL and os.path.exists(db_utils.SQLITE_PATH):
-        st.write(f"**Tamaño DB Local:** {os.path.getsize(db_utils.SQLITE_PATH) / 1024:.2f} KB")
+
 
 st.markdown("<div style='text-align: center; color: #64748b; font-size: 0.8rem; padding: 20px 0; border-top: 1px solid rgba(255,255,255,0.05); margin-top: 40px;'>Finanzas Pro v3.0 • Desarrollado con ❤️ para el Mercado de Valores</div>", unsafe_allow_html=True)
