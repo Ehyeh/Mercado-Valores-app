@@ -902,7 +902,10 @@ with tab_portfolio:
         
         # 1. Dashboard Header (Metrics + Chart)
             
-        d_col1, d_col2 = st.columns([1, 2])
+# 1. Dashboard Header (Metrics + Chart)
+        
+        # New Layout: Metrics | Bar Chart (Comparison) | History Chart (Trend)
+        d_col1, d_col2, d_col3 = st.columns([1, 1.2, 1.8])
         
         with d_col1:
             total_gain = total_value - total_cost
@@ -910,9 +913,10 @@ with tab_portfolio:
             color_hex = "#4ade80" if total_gain >= 0 else "#f87171"
             total_val_usd = total_value / usd_rate if usd_rate > 0 else 0
             total_gain_usd = total_gain / usd_rate if usd_rate > 0 else 0
+            total_cost_usd = total_cost / usd_rate if usd_rate > 0 else 0
             
             st.markdown(f"""
-                <div>
+                <div style="height: 100%; display: flex; flex-direction: column; justify-content: center;">
                     <div style="font-size: 0.85rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Balance Total</div>
                     <div style="font-size: 2.2rem; font-weight: 800; color: white; margin: 4px 0;">Bs. {total_value:,.2f}</div>
                     <div style="font-size: 1.2rem; font-weight: 600; color: #38bdf8; margin-bottom: 8px;">$ {total_val_usd:,.2f}</div>
@@ -924,7 +928,47 @@ with tab_portfolio:
             """, unsafe_allow_html=True)
         
         with d_col2:
-            # 2. Portfolio History Chart (Inline)
+            # 2. New Bar Chart: Invertido vs Actual (Premium Style)
+            if holdings:
+                # Prepare data
+                bar_labels = ['Invertido', 'Valor Total']
+                bar_values = [total_cost, total_value]
+                bar_colors = ['#fb923c', '#2dd4bf'] # Orange, Teal
+                
+                # Create custom text for bars (Using USD for compactness like reference, or Bs)
+                # The reference uses $ values. Let's use the local currency Bs but formatted.
+                text_values = [f"Bs. {v:,.0f}" for v in bar_values]
+                
+                fig_bar = go.Figure(data=[
+                    go.Bar(
+                        x=bar_labels,
+                        y=bar_values,
+                        marker_color=bar_colors,
+                        text=text_values,
+                        textposition='auto',
+                        width=0.6
+                    )
+                ])
+                
+                fig_bar.update_layout(
+                    margin=dict(l=20, r=20, t=30, b=20),
+                    height=200,
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    xaxis=dict(
+                        showgrid=False, 
+                        showline=True, 
+                        linecolor='rgba(255,255,255,0.2)',
+                        tickfont=dict(color='#cbd5e1', size=12)
+                    ),
+                    yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.05)', tickfont=dict(color='#94a3b8', size=10)),
+                    showlegend=False,
+                    bargap=0.4
+                )
+                st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
+
+        with d_col3:
+            # 3. Portfolio History Chart (Inline)
             symbols = [h['symbol'] for h in holdings]
             hist_df = fetch_multi_history(symbols)
             
@@ -947,7 +991,7 @@ with tab_portfolio:
                 
                 fig_main.update_layout(
                     margin=dict(l=0, r=0, t=10, b=0),
-                    height=160,
+                    height=200,
                     paper_bgcolor='rgba(0,0,0,0)',
                     plot_bgcolor='rgba(0,0,0,0)',
                     xaxis=dict(showgrid=False, color="#475569", tickfont=dict(size=10)),
