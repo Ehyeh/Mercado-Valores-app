@@ -937,7 +937,10 @@ with tab_portfolio:
                 
                 # Create custom text for bars (Using USD for compactness like reference, or Bs)
                 # The reference uses $ values. Let's use the local currency Bs but formatted.
-                text_values = [f"Bs. {v:,.0f}" for v in bar_values]
+                text_values = []
+                for v in bar_values:
+                     val_usd = v / usd_rate if usd_rate and usd_rate > 0 else 0
+                     text_values.append(f"Bs. {v:,.0f}<br>$ {val_usd:,.2f}")
                 
                 fig_bar = go.Figure(data=[
                     go.Bar(
