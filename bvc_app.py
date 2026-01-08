@@ -1015,7 +1015,10 @@ with tab_portfolio:
                 "Ganancia/Pérdida": gain_loss,
                 "G/P %": gain_loss_pct,
                 "Cambio Diario %": day_change_pct,
-                "purchase_date": item.get('purchase_date')
+                "purchase_date": item.get('purchase_date'),
+                "qty": item['qty'],
+                "avg_cost": item['avg_cost'],
+                "symbol": item['symbol']
             })
 
         # --- Premium Portfolio UI (Inspired by Image) ---
