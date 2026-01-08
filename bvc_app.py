@@ -518,6 +518,127 @@ def init_db_wrapper():
 
 init_db_wrapper()
 
+
+# --- Helper Functions ---
+
+@st.dialog("📄 Detalles de Transacción")
+def transaction_details(item, usd_rate, available_symbols, format_func):
+    # Retrieve data
+    qty = item['qty']
+    avg_cost = item['avg_cost'] # This is the REAL cost (with fees)
+    symbol = item['symbol']
+    # Safe date parsing
+    try:
+        p_date = datetime.fromisoformat(item['purchase_date']).date()
+    except:
+        p_date = datetime.now(VET).date()
+
+    # --- Calculations for Breakdown (Reverse Engineering) ---
+    # Total Paid = avg_cost * qty
+    total_paid = avg_cost * qty
+    
+    # Standard Rates assumptions for breakdown display
+    # Base + Comm(5%) + Rights(0.1%) + IVA(16% of Comm)
+    # Factor = 1 + 0.05 + 0.001 + (0.05 * 0.16) = 1.059
+    factor = 1.059
+    
+    estimated_base_total = total_paid / factor
+    estimated_base_price = estimated_base_total / qty if qty > 0 else 0
+    
+    comision_amt = estimated_base_total * 0.05
+    derecho_amt = estimated_base_total * 0.001
+    iva_amt = comision_amt * 0.16
+    
+    # Validation: Re-sum should match total_paid
+    
+    # --- UI Layout ---
+    st.markdown("##### Resumen de la operación")
+    
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown(f"""
+            <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px;">
+                <div style="font-size: 0.8rem; color: #94a3b8;">📅 Fecha</div>
+                <div style="font-weight: 600; font-size: 1rem;">{p_date.strftime('%d/%m/%Y')}</div>
+            </div>
+        """, unsafe_allow_html=True)
+    with c2:
+        st.markdown(f"""
+            <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px;">
+                <div style="font-size: 0.8rem; color: #94a3b8;">💳 Acciones</div>
+                <div style="font-weight: 600; font-size: 1rem;">{qty:,.0f} {symbol.replace('.CR', '')}</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("##### 💲 Precios")
+    p1, p2 = st.columns(2)
+    with p1:
+        st.markdown(f"""
+            <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px;">
+                <div style="font-size: 0.8rem; color: #94a3b8;">Precio (Compra Base)</div>
+                <div style="font-weight: 600; font-size: 1rem;">{estimated_base_price:,.2f} Bs</div>
+            </div>
+        """, unsafe_allow_html=True)
+    with p2:
+        val_usd = estimated_base_price / usd_rate if usd_rate > 0 else 0
+        st.markdown(f"""
+            <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px;">
+                <div style="font-size: 0.8rem; color: #94a3b8;">Precio (Dólar Est.)</div>
+                <div style="font-weight: 600; font-size: 1rem;">$ {val_usd:,.2f}</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("##### 🧾 Comisiones e Impuestos (Estimado)")
+    f1, f2 = st.columns(2)
+    with f1:
+        st.text_input("Com. Casa de Bolsa", value=f"{comision_amt:,.2f} Bs", disabled=True)
+        st.text_input("IVA", value=f"{iva_amt:,.2f} Bs", disabled=True)
+    with f2:
+        st.text_input("Derecho de Registro", value=f"{derecho_amt:,.2f} Bs", disabled=True)
+        st.text_input("Monto Invertido (Total)", value=f"{total_paid:,.2f} Bs", disabled=True)
+
+    st.divider()
+    
+    # --- Edit / Delete Actions ---
+    
+    # State management for editing within dialog
+    if f"edit_mode_{item['id']}" not in st.session_state:
+        st.session_state[f"edit_mode_{item['id']}"] = False
+
+    if not st.session_state[f"edit_mode_{item['id']}"]:
+        col_act1, col_act2 = st.columns([1, 1])
+        with col_act1:
+            if st.button("✏️ Editar Registro", use_container_width=True, key=f"btn_edit_{item['id']}"):
+                st.session_state[f"edit_mode_{item['id']}"] = True
+                st.rerun()
+        with col_act2:
+            if st.button("🗑️ Eliminar Acción", type="primary", use_container_width=True, key=f"btn_del_{item['id']}"):
+                db_utils.delete_holding(item['id'])
+                st.toast("Activo eliminado correctamente.")
+                time.sleep(1)
+                st.rerun()
+    else:
+        st.info("Modificando Registro")
+        with st.form(key=f"edit_form_dialog_{item['id']}"):
+            new_sym = st.selectbox("Acción", options=available_symbols, index=available_symbols.index(symbol) if symbol in available_symbols else 0, format_func=format_func)
+            new_qty = st.number_input("Cantidad", min_value=1.0, value=float(qty))
+            new_cost = st.number_input("Costo Promedio Real (Bs)", min_value=0.0, value=float(avg_cost), format="%.4f")
+            new_date = st.date_input("Fecha", value=p_date)
+            
+            c_save, c_cancel = st.columns(2)
+            with c_save:
+                if st.form_submit_button("💾 Guardar", type="primary"):
+                    db_utils.update_holding(item['id'], new_sym, new_qty, new_cost, new_date.isoformat())
+                    st.success("Guardado.")
+                    st.session_state[f"edit_mode_{item['id']}"] = False
+                    time.sleep(1)
+                    st.rerun()
+            with c_cancel:
+                if st.form_submit_button("Cancelar"):
+                    st.session_state[f"edit_mode_{item['id']}"] = False
+                    st.rerun()
+
+
 # --- Tabs ---
 tab_market, tab_portfolio = st.tabs(["🏛️ Mercado", "💼 Mi Portafolio"])
 
@@ -1010,7 +1131,6 @@ with tab_portfolio:
         # st.markdown("#### Distribución y Activos")
         
         # 3. Holdings Cards (New Design)
-        items_to_delete = []
         for p_item in portfolio_data:
             display_symbol = p_item['Symbol'].replace('.CR', '')
             symbol_full = p_item['Symbol']
@@ -1022,7 +1142,7 @@ with tab_portfolio:
             
             # Use columns for the premium card layout
             with st.container():
-                c_main, c_actions = st.columns([0.9, 0.1])
+                c_main = st.container()
                 
                 with c_main:
                     # Inner columns for the card content - adjusted weights
@@ -1033,9 +1153,8 @@ with tab_portfolio:
                         
                         # Symbol as a button to toggle edit mode (with marker for CSS)
                         st.markdown('<div class="portfolio-symbol-marker"></div>', unsafe_allow_html=True)
-                        if st.button(display_symbol, key=f"edit_sym_btn_{p_item['id']}", help="Clic para editar activo", type="tertiary"):
-                             st.session_state[f"is_editing_{p_item['id']}"] = not st.session_state.get(f"is_editing_{p_item['id']}", False)
-                             st.rerun()
+                        if st.button(display_symbol, key=f"edit_sym_btn_{p_item['id']}", help="Clic para ver detalles y opciones", type="tertiary"):
+                            transaction_details(p_item, usd_rate, available_symbols, format_func)
 
                         st.markdown(f"""
                             <div style="padding: 2px 0; margin-top: -10px;">
@@ -1065,41 +1184,7 @@ with tab_portfolio:
                             </div>
                         """, unsafe_allow_html=True)
 
-                with c_actions:
-                    if st.checkbox("", key=f"del_chk_{p_item['id']}", label_visibility="collapsed"):
-                        items_to_delete.append(p_item['id'])
 
-                if st.session_state.get(f"is_editing_{p_item['id']}", False):
-                    with st.form(key=f"edit_form_{p_item['id']}"):
-                        st.markdown(f"##### ✏️ Editar Registro: {display_symbol}")
-                        ec1, ec2, ec3, ec4 = st.columns([1.5, 1, 1, 1])
-                        with ec1:
-                            new_sym = st.selectbox("Acción", options=available_symbols, index=available_symbols.index(p_item['Symbol']) if p_item['Symbol'] in available_symbols else 0, format_func=format_func, key=f"edit_sym_{p_item['id']}")
-                        with ec2:
-                            new_qty = st.number_input("Cant.", min_value=0.0, value=float(p_item['Cantidad']), key=f"edit_qty_{p_item['id']}")
-                        with ec3:
-                            new_cost = st.number_input("Costo Prom. (Bs)", min_value=0.0, value=float(p_item['Costo Prom.']), format="%.4f", key=f"edit_cost_{p_item['id']}")
-                        with ec4:
-                            current_date = datetime.fromisoformat(p_item['purchase_date']).date() if p_item['purchase_date'] else datetime.now(VET).date()
-                            new_date = st.date_input("Fecha", value=current_date, key=f"edit_date_{p_item['id']}")
-                        
-                        if st.form_submit_button("💾 Guardar Cambios", use_container_width=True):
-                            db_utils.update_holding(p_item['id'], new_sym, new_qty, new_cost, new_date.isoformat())
-                            st.success("✅ Cambios guardados.")
-                            del st.session_state[f"is_editing_{p_item['id']}"]
-                            time.sleep(1)
-                            st.rerun()
-
-        if items_to_delete:
-            # Create right-aligned container for delete button
-            col1, col2 = st.columns([3, 1])
-            with col2:
-                if st.button(f"🗑️ Eliminar ({len(items_to_delete)}) Seleccionados", type="primary", use_container_width=True):
-                    for del_id in items_to_delete:
-                        db_utils.delete_holding(del_id)
-                    st.success("Activos eliminados correctamente.")
-                    time.sleep(1)
-                    st.rerun()
 
 
 
