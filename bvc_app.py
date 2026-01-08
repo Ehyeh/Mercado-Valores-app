@@ -600,7 +600,7 @@ def transaction_details(item, usd_rate, available_symbols, format_func):
     p1, p2 = st.columns(2)
     with p1:
         st.markdown(f"""
-            <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px;">
+            <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; min-height: 85px; display: flex; flex-direction: column; justify-content: center;">
                 <div style="font-size: 0.8rem; color: #94a3b8;">Precio Base</div>
                 <div style="font-weight: 600; font-size: 1rem;">{estimated_base_price:,.2f} Bs</div>
                 <div style="font-size: 0.9rem; color: #38bdf8; font-weight: 600;">$ {val_usd:,.2f}</div>
@@ -608,7 +608,7 @@ def transaction_details(item, usd_rate, available_symbols, format_func):
         """, unsafe_allow_html=True)
     with p2:
         st.markdown(f"""
-            <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px;">
+            <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; min-height: 85px; display: flex; flex-direction: column; justify-content: center;">
                 <div style="font-size: 0.8rem; color: #94a3b8;">Tasa de Cambio</div>
                 <div style="font-weight: 600; font-size: 1rem;">{eff_rate:,.2f} Bs/$</div>
                 <div style="font-size: 0.65rem; color: #64748b; margin-top: 2px;">{f'BCV ({p_date.strftime("%d/%m")})' if hist_rate else 'Actual'}</div>
