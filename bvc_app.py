@@ -593,22 +593,25 @@ def transaction_details(item, usd_rate, available_symbols, format_func):
     eff_rate = hist_rate if hist_rate else usd_rate
     rate_label = f"Tasa BCV ({p_date.strftime('%d/%m')}): {eff_rate:,.2f}" if hist_rate else f"Tasa Actual: {eff_rate:,.2f}"
 
+    # Calculate USD value
+    val_usd = estimated_base_price / eff_rate if eff_rate > 0 else 0
+
     st.markdown("##### 💲 Precios")
     p1, p2 = st.columns(2)
     with p1:
         st.markdown(f"""
             <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px;">
-                <div style="font-size: 0.8rem; color: #94a3b8;">Precio (Compra Base)</div>
+                <div style="font-size: 0.8rem; color: #94a3b8;">Precio Base</div>
                 <div style="font-weight: 600; font-size: 1rem;">{estimated_base_price:,.2f} Bs</div>
+                <div style="font-size: 0.9rem; color: #38bdf8; font-weight: 600;">$ {val_usd:,.2f}</div>
             </div>
         """, unsafe_allow_html=True)
     with p2:
-        val_usd = estimated_base_price / eff_rate if eff_rate > 0 else 0
         st.markdown(f"""
             <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px;">
-                <div style="font-size: 0.8rem; color: #94a3b8;">Precio (Dólar Est.)</div>
-                <div style="font-weight: 600; font-size: 1rem;">$ {val_usd:,.2f}</div>
-                <div style="font-size: 0.65rem; color: #64748b; margin-top: 2px;">{rate_label}</div>
+                <div style="font-size: 0.8rem; color: #94a3b8;">Tasa de Cambio</div>
+                <div style="font-weight: 600; font-size: 1rem;">{eff_rate:,.2f} Bs/$</div>
+                <div style="font-size: 0.65rem; color: #64748b; margin-top: 2px;">{f'BCV ({p_date.strftime("%d/%m")})' if hist_rate else 'Actual'}</div>
             </div>
         """, unsafe_allow_html=True)
 
