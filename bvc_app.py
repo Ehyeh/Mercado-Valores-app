@@ -192,6 +192,23 @@ def fetch_bcv_rate():
         print(f"Error fetching BCV rate: {e}")
         return 1.0
 
+@st.cache_data(ttl=86400) # Cache indefinitely for history (or 1 day)
+def fetch_historical_bcv_rate(target_date):
+    """
+    Fetches historical BCV rate for a specific date using api.dolarvzla.com.
+    """
+    str_date = target_date.strftime('%Y-%m-%d')
+    url = f"https://api.dolarvzla.com/public/exchange-rate/list?from={str_date}&to={str_date}"
+    try:
+        response = requests.get(url, timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            if 'rates' in data and len(data['rates']) > 0:
+                return float(data['rates'][0]['usd'])
+    except Exception as e:
+        print(f"Error fetching historical BCV: {e}")
+    return None
+
 @st.cache_data(ttl=300)
 def fetch_binance_rate():
     """
@@ -570,6 +587,12 @@ def transaction_details(item, usd_rate, available_symbols, format_func):
             </div>
         """, unsafe_allow_html=True)
 
+    # Fetch historical rate for the specific date
+    hist_rate = fetch_historical_bcv_rate(p_date)
+    # Use historical rate if available, otherwise fallback to current rate (but indicate it)
+    eff_rate = hist_rate if hist_rate else usd_rate
+    rate_label = f"Tasa BCV ({p_date.strftime('%d/%m')}): {eff_rate:,.2f}" if hist_rate else f"Tasa Actual: {eff_rate:,.2f}"
+
     st.markdown("##### 💲 Precios")
     p1, p2 = st.columns(2)
     with p1:
@@ -580,11 +603,12 @@ def transaction_details(item, usd_rate, available_symbols, format_func):
             </div>
         """, unsafe_allow_html=True)
     with p2:
-        val_usd = estimated_base_price / usd_rate if usd_rate > 0 else 0
+        val_usd = estimated_base_price / eff_rate if eff_rate > 0 else 0
         st.markdown(f"""
             <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px;">
                 <div style="font-size: 0.8rem; color: #94a3b8;">Precio (Dólar Est.)</div>
                 <div style="font-weight: 600; font-size: 1rem;">$ {val_usd:,.2f}</div>
+                <div style="font-size: 0.65rem; color: #64748b; margin-top: 2px;">{rate_label}</div>
             </div>
         """, unsafe_allow_html=True)
 
