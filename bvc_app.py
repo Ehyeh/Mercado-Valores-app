@@ -923,105 +923,10 @@ with tab_portfolio:
             return s_clean
         return f"{s_clean} ({s_name})"
 
-    # 1. Add Asset Section (Now at the top)
-    with st.expander("➕ Agregar Activo", expanded=not holdings):
-        # Interactive Add Asset
-        c1, c2, c3, c4 = st.columns([1.5, 1, 1, 1])
-        
-        with c1:
-            symbol_sel = st.selectbox("Acción", options=available_symbols, format_func=format_func, key="pf_symbol_select")
 
-        with c2:
-            # Default to today
-            purchase_date = st.date_input("Fecha Compra", value=datetime.now(VET).date(), key="pf_date_input")
-
-        # Logic to update price when symbol or date changes
-        if 'last_pf_selection' not in st.session_state:
-            st.session_state.last_pf_selection = (None, None)
-        
-        current_selection = (symbol_sel, purchase_date)
-        
-        if current_selection != st.session_state.last_pf_selection:
-            with st.spinner("Consultando precio..."):
-                # If it's today, we can use the current price
-                if purchase_date == datetime.now(VET).date():
-                     row = data['stocks'][data['stocks']['Symbol'] == symbol_sel]
-                     price_to_set = float(row['Price'].values[0]) if not row.empty else 0.0
-                else:
-                    # Fetch historical
-                    hist_price = fetch_historical_price(symbol_sel, purchase_date)
-                    price_to_set = float(hist_price) if hist_price else 0.0
-                
-                st.session_state.pf_cost_input = price_to_set
-                st.session_state.last_pf_selection = current_selection
-
-        with c3:
-            qty_input = st.number_input("Cantidad", min_value=1, value=100, key="pf_qty_input")
-        with c4:
-            # This is the base price per share (Mercado)
-            cost_input = st.number_input("Precio de Compra (Bs)", min_value=0.0, step=0.01, format="%.2f", key="pf_cost_input")
-            cost_usd = cost_input / usd_rate if usd_rate > 0 else 0
-            st.markdown(f"<div style='color: #38bdf8; font-size: 0.8rem;'>≈ $ {cost_usd:,.2f}</div>", unsafe_allow_html=True)
-        
-        # --- Fees Section ---
-        st.markdown("<div style='margin-top: 15px; font-size: 0.85rem; color: #94a3b8; font-weight: 600; text-transform: uppercase;'>Comisiones y Gastos</div>", unsafe_allow_html=True)
-        f1, f2, f3 = st.columns(3)
-        with f1:
-            comision_pct = st.number_input("Comisión (%)", min_value=0.0, max_value=100.0, value=5.00, step=0.05, format="%.2f", key="pf_com_pct")
-        with f2:
-            derecho_pct = st.number_input("Derecho Registro (%)", min_value=0.0, max_value=100.0, value=0.10, step=0.01, format="%.2f", key="pf_der_pct")
-        with f3:
-            iva_pct = st.number_input("I.V.A. (%)", min_value=0.0, max_value=100.0, value=16.0, step=1.0, format="%.0f", key="pf_iva_pct")
-
-        # Calculations
-        base_subtotal = qty_input * cost_input
-        comision_amt = base_subtotal * (comision_pct / 100)
-        derecho_amt = base_subtotal * (derecho_pct / 100)
-        iva_amt = comision_amt * (iva_pct / 100)
-        grand_total = base_subtotal + comision_amt + derecho_amt + iva_amt
-        final_avg_cost = grand_total / qty_input if qty_input > 0 else 0
-
-        # UI Breakdown
-        st.markdown(f"""
-        <div style="background: rgba(30, 41, 59, 0.5); padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); margin: 15px 0;">
-            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 4px;">
-                <span style="color: #94a3b8;">Monto Bruto (Sub-Total):</span>
-                <span style="color: #f8fafc; font-weight: 600;">Bs. {base_subtotal:,.2f}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 4px;">
-                <span style="color: #94a3b8;">Comisión ({comision_pct}%):</span>
-                <span style="color: #f8fafc;">+ Bs. {comision_amt:,.2f}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 4px;">
-                <span style="color: #94a3b8;">Derecho de Registro ({derecho_pct}%):</span>
-                <span style="color: #f8fafc;">+ Bs. {derecho_amt:,.2f}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 8px;">
-                <span style="color: #94a3b8;">I.V.A. ({iva_pct}%):</span>
-                <span style="color: #f8fafc;">+ Bs. {iva_amt:,.2f}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; font-size: 1rem; font-weight: 700; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px;">
-                <span style="color: #f8fafc;">Total Liquidación:</span>
-                <span style="color: #4ade80;">Bs. {grand_total:,.2f}</span>
-            </div>
-            <div style="margin-top: 10px; padding: 8px; background: rgba(56, 189, 248, 0.1); border-radius: 8px; text-align: center;">
-                <span style="color: #38bdf8; font-size: 0.8rem; font-weight: 600;">COSTO PROMEDIO REAL:</span>
-                <span style="color: #f8fafc; font-size: 0.9rem; font-weight: 800; margin-left: 10px;">Bs. {final_avg_cost:,.4f}</span>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-            
-        if st.button("Confirmar Compra y Agregar", type="primary", use_container_width=True):
-            try:
-                db_utils.add_holding(symbol_sel, qty_input, final_avg_cost, purchase_date.isoformat())
-                st.success(f"✅ Se agregaron {qty_input} acciones a un costo real de Bs. {final_avg_cost:,.4f}")
-                time.sleep(1.5)
-                st.rerun()
-            except Exception as e:
-                st.error(f"Error al guardar: {e}")
 
     if not holdings:
-        st.info("Tu portafolio está vacío. Agrega acciones arriba para comenzar. (Ahora se guardan en Base de Datos)")
+        st.info("Tu portafolio está vacío. Agrega acciones a continuación para comenzar. (Ahora se guardan en Base de Datos)")
     else:
         # Calculate Logic
         portfolio_data = []
@@ -1232,6 +1137,104 @@ with tab_portfolio:
                                 </div>
                             </div>
                         """, unsafe_allow_html=True)
+
+    st.markdown("---")
+    # 1. Add Asset Section (Now at the bottom)
+    with st.expander("➕ Agregar Activo", expanded=not holdings):
+        # Interactive Add Asset
+        c1, c2, c3, c4 = st.columns([1.5, 1, 1, 1])
+        
+        with c1:
+            symbol_sel = st.selectbox("Acción", options=available_symbols, format_func=format_func, key="pf_symbol_select")
+
+        with c2:
+            # Default to today
+            purchase_date = st.date_input("Fecha Compra", value=datetime.now(VET).date(), key="pf_date_input")
+
+        # Logic to update price when symbol or date changes
+        if 'last_pf_selection' not in st.session_state:
+            st.session_state.last_pf_selection = (None, None)
+        
+        current_selection = (symbol_sel, purchase_date)
+        
+        if current_selection != st.session_state.last_pf_selection:
+            with st.spinner("Consultando precio..."):
+                # If it's today, we can use the current price
+                if purchase_date == datetime.now(VET).date():
+                     row = data['stocks'][data['stocks']['Symbol'] == symbol_sel]
+                     price_to_set = float(row['Price'].values[0]) if not row.empty else 0.0
+                else:
+                    # Fetch historical
+                    hist_price = fetch_historical_price(symbol_sel, purchase_date)
+                    price_to_set = float(hist_price) if hist_price else 0.0
+                
+                st.session_state.pf_cost_input = price_to_set
+                st.session_state.last_pf_selection = current_selection
+
+        with c3:
+            qty_input = st.number_input("Cantidad", min_value=1, value=100, key="pf_qty_input")
+        with c4:
+            # This is the base price per share (Mercado)
+            cost_input = st.number_input("Precio de Compra (Bs)", min_value=0.0, step=0.01, format="%.2f", key="pf_cost_input")
+            cost_usd = cost_input / usd_rate if usd_rate > 0 else 0
+            st.markdown(f"<div style='color: #38bdf8; font-size: 0.8rem;'>≈ $ {cost_usd:,.2f}</div>", unsafe_allow_html=True)
+        
+        # --- Fees Section ---
+        st.markdown("<div style='margin-top: 15px; font-size: 0.85rem; color: #94a3b8; font-weight: 600; text-transform: uppercase;'>Comisiones y Gastos</div>", unsafe_allow_html=True)
+        f1, f2, f3 = st.columns(3)
+        with f1:
+            comision_pct = st.number_input("Comisión (%)", min_value=0.0, max_value=100.0, value=5.00, step=0.05, format="%.2f", key="pf_com_pct")
+        with f2:
+            derecho_pct = st.number_input("Derecho Registro (%)", min_value=0.0, max_value=100.0, value=0.10, step=0.01, format="%.2f", key="pf_der_pct")
+        with f3:
+            iva_pct = st.number_input("I.V.A. (%)", min_value=0.0, max_value=100.0, value=16.0, step=1.0, format="%.0f", key="pf_iva_pct")
+
+        # Calculations
+        base_subtotal = qty_input * cost_input
+        comision_amt = base_subtotal * (comision_pct / 100)
+        derecho_amt = base_subtotal * (derecho_pct / 100)
+        iva_amt = comision_amt * (iva_pct / 100)
+        grand_total = base_subtotal + comision_amt + derecho_amt + iva_amt
+        final_avg_cost = grand_total / qty_input if qty_input > 0 else 0
+
+        # UI Breakdown
+        st.markdown(f"""
+        <div style="background: rgba(30, 41, 59, 0.5); padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); margin: 15px 0;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 4px;">
+                <span style="color: #94a3b8;">Monto Bruto (Sub-Total):</span>
+                <span style="color: #f8fafc; font-weight: 600;">Bs. {base_subtotal:,.2f}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 4px;">
+                <span style="color: #94a3b8;">Comisión ({comision_pct}%):</span>
+                <span style="color: #f8fafc;">+ Bs. {comision_amt:,.2f}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 4px;">
+                <span style="color: #94a3b8;">Derecho de Registro ({derecho_pct}%):</span>
+                <span style="color: #f8fafc;">+ Bs. {derecho_amt:,.2f}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 8px;">
+                <span style="color: #94a3b8;">I.V.A. ({iva_pct}%):</span>
+                <span style="color: #f8fafc;">+ Bs. {iva_amt:,.2f}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 1rem; font-weight: 700; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px;">
+                <span style="color: #f8fafc;">Total Liquidación:</span>
+                <span style="color: #4ade80;">Bs. {grand_total:,.2f}</span>
+            </div>
+            <div style="margin-top: 10px; padding: 8px; background: rgba(56, 189, 248, 0.1); border-radius: 8px; text-align: center;">
+                <span style="color: #38bdf8; font-size: 0.8rem; font-weight: 600;">COSTO PROMEDIO REAL:</span>
+                <span style="color: #f8fafc; font-size: 0.9rem; font-weight: 800; margin-left: 10px;">Bs. {final_avg_cost:,.4f}</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+            
+        if st.button("Confirmar Compra y Agregar", type="primary", use_container_width=True):
+            try:
+                db_utils.add_holding(symbol_sel, qty_input, final_avg_cost, purchase_date.isoformat())
+                st.success(f"✅ Se agregaron {qty_input} acciones a un costo real de Bs. {final_avg_cost:,.4f}")
+                time.sleep(1.5)
+                st.rerun()
+            except Exception as e:
+                st.error(f"Error al guardar: {e}")
 
 
 
