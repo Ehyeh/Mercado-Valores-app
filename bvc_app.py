@@ -457,8 +457,8 @@ def create_sparkline(series, color="#4ade80"):
     ))
     fig.update_layout(
         margin=dict(l=0, r=0, t=0, b=0),
-        height=30,
-        width=80,
+        height=40,
+        width=120,
         showlegend=False,
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
@@ -1100,7 +1100,7 @@ with tab_portfolio:
                 
                 with c_main:
                     # Inner columns for the card content - adjusted weights
-                    col_info, col_spark, col_val = st.columns([1.2, 0.8, 1])
+                    col_info, col_spark, col_val = st.columns([1.2, 0.8, 1], vertical_alignment="center")
                     
                     with col_info:
                         buy_date_str = datetime.fromisoformat(p_item['purchase_date']).strftime('%d/%b/%y') if p_item['purchase_date'] else 'N/A'
@@ -1111,7 +1111,7 @@ with tab_portfolio:
                             transaction_details(p_item, usd_rate, available_symbols, format_func)
 
                         st.markdown(f"""
-                            <div style="padding: 2px 0; margin-top: -10px;">
+                            <div style="padding: 2px 0;">
                                 <div style="font-size: 0.75rem; color: #94a3b8; background: rgba(255, 255, 255, 0.05); padding: 2px 6px; border-radius: 4px; font-weight: 600; text-transform: uppercase; display: inline-block; margin-bottom: 6px;">{buy_date_str}</div>
                                 <div style="font-size: 0.85rem; color: #cbd5e1; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;">{symbol_to_name.get(symbol_full, display_symbol)}</div>
                                 <div style="font-size: 0.85rem; color: #e2e8f0; font-weight: 500;">{p_item['Cantidad']:,g} acc. @ Bs. {p_item['Costo Prom.']:,.2f}</div>
