@@ -706,7 +706,7 @@ with tab_market:
                         <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{top_gainer['Name']}</div>
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <div style="color: #4ade80; font-weight: 700;">+{top_gainer['ChangePercent']:.2f}%</div>
-                            <div style="text-align: right;">
+                            <div style="text-align: right; padding-right: 5px; padding-bottom: 5px;">
                                 <div style="color: #f8fafc; font-size: 0.9rem; font-weight: 600;">Bs. {top_gainer['Price']:,.2f}</div>
                                 <div style="color: #38bdf8; font-size: 0.75rem;">$ {top_gainer['Price']/usd_rate:,.2f}</div>
                             </div>
