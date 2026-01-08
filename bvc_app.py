@@ -1085,7 +1085,7 @@ with tab_portfolio:
         # st.markdown("#### Distribución y Activos")
         
         # 3. Holdings Cards (New Design)
-        for p_item in portfolio_data:
+        for idx, p_item in enumerate(portfolio_data):
             display_symbol = p_item['Symbol'].replace('.CR', '')
             symbol_full = p_item['Symbol']
             
@@ -1137,6 +1137,9 @@ with tab_portfolio:
                                 </div>
                             </div>
                         """, unsafe_allow_html=True)
+            
+            if idx < len(portfolio_data) - 1:
+                st.markdown('<div style="height: 1px; background-color: rgba(255,255,255,0.1); margin: 15px 0;"></div>', unsafe_allow_html=True)
 
     st.markdown("---")
     # 1. Add Asset Section (Now at the bottom)
